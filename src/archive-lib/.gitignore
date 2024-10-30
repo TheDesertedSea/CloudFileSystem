@@ -1,0 +1,6 @@
+# dir/**
+# *.txt
+
+temp/**
+*.tar
+archive_example

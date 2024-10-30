@@ -1,0 +1,4 @@
+This is a documentation of changes made in this directory in 2023, with migration to Ubuntu 22.04.
+
+1. s3server.py has been ported to python3. I used the code formatter `Black`. `Black` is opinionated and requires no style config files.
+2. I tested the server against curl-based commands in s3cli.sh, and those check out. `s3server.log` should show its observed sequence of operations.

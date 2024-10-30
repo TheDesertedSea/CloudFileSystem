@@ -1,0 +1,2 @@
+/usr/bin/ar qc libarchive-util.a CMakeFiles/archive-util.dir/archive_util.cc.o
+/usr/bin/ranlib libarchive-util.a
