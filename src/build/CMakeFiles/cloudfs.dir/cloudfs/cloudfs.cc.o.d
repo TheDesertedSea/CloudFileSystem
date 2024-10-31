@@ -203,5 +203,4 @@ CMakeFiles/cloudfs.dir/cloudfs/cloudfs.cc.o: \
  /home/student/cmu15746-project2/src/cloudfs/cloudfs.h \
  /home/student/cmu15746-project2/src/cloudfs/util.h \
  /home/student/cmu15746-project2/src/cloudfs/metadata.h \
- /home/student/cmu15746-project2/src/cloudfs/data.h \
- /usr/include/c++/11/cstddef
+ /home/student/cmu15746-project2/src/cloudfs/data.h

@@ -71,11 +71,12 @@ int cloudfs_getattr(const char *path, struct stat *statbuf)
     return cloudfs_error("getattr: ssd failed");
   }
 
-  auto metadata_path = get_metadata_path(ssd_path);
-  auto metadata = get_metadata(metadata_path);
-  if(metadata.is_on_cloud) {
-    st.st_size = metadata.size;
+  Metadata metadata;
+  ret = get_metadata(ssd_path, metadata);
+  if(ret != 0) {
+    return cloudfs_error("getattr: get_metadata failed");
   }
+  st.st_size -= METADATA_SIZE;
 
   memcpy(statbuf, &st, sizeof(struct stat));
   return 0;
@@ -133,33 +134,39 @@ int cloudfs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
     return cloudfs_error("create: ssd failed");
   }
   fi->fh = fd;
-  auto metadata_path = get_metadata_path(ssd_path);
   Metadata metadata;
   metadata.size = 0;
   metadata.is_on_cloud = false;
-  set_metadata(metadata_path, metadata);
+  auto ret = set_metadata(ssd_path, metadata);
+  if(ret != 0) {
+    return cloudfs_error("create: set_metadata failed");
+  }
   return 0;
 }
 
 int cloudfs_open(const char *path, struct fuse_file_info *fi)
 {
   auto ssd_path = state_.ssd_path + std::string(path);
-  auto metadata_path = get_metadata_path(ssd_path);
-  if(!access(ssd_path.c_str(), F_OK)) {
-    errno = ENOENT;
-    return cloudfs_error("open: No such file or directory");
-  }
-
-  auto metadata = get_metadata(metadata_path);
-  if(metadata.is_on_cloud) {
-    download_file(ssd_path, bukcet_name, generate_object_key(ssd_path));
-  }
-
   auto fd = open(ssd_path.c_str(), fi->flags);
   if(fd < 0) {
     return cloudfs_error("open: ssd failed");
   }
   fi->fh = fd;
+
+  Metadata metadata;
+  auto ret = get_metadata(ssd_path, metadata);
+  if(ret != 0) {
+    return cloudfs_error("open: get_metadata failed");
+  }
+  if(metadata.is_on_cloud) {
+    download_data(ssd_path, bukcet_name, generate_object_key(ssd_path));
+    metadata.is_on_cloud = false;
+    set_metadata(ssd_path, metadata);
+  }
+
+  // skip the first METADATA_SIZE bytes
+  lseek(fd, METADATA_SIZE, SEEK_SET);
+  
   return 0;
 }
 
@@ -192,19 +199,21 @@ int cloud_release(const char *path, struct fuse_file_info *fi) {
   auto ssd_path = state_.ssd_path + std::string(path);
   struct stat stat_buf;
   lstat(ssd_path.c_str(), &stat_buf);
-  if(stat_buf.st_size > state_.threshold) {
-    upload_file(ssd_path, bukcet_name, generate_object_key(ssd_path), stat_buf.st_size);
-    auto metadata_path = get_metadata_path(ssd_path);
-    Metadata metadata;
-    metadata.size = stat_buf.st_size;
-    metadata.is_on_cloud = true;
-    set_metadata(metadata_path, metadata);
+  auto size = stat_buf.st_size - METADATA_SIZE;
+  if(size > (size_t)state_.threshold * 1024) {
+    upload_data(ssd_path, bukcet_name, generate_object_key(ssd_path), size);
     // clear the file
-    auto fd = open(ssd_path.c_str(), O_TRUNC);
-    if(fd < 0) {
-      return cloudfs_error("release: ssd failed");
+    auto ret = truncate(ssd_path.c_str(), METADATA_SIZE);
+    if(ret < 0) {
+      return cloudfs_error("release: truncate failed");
     }
-    close(fd);
+    Metadata metadata;
+    metadata.size = size;
+    metadata.is_on_cloud = true;
+    ret = set_metadata(ssd_path, metadata);
+    if(ret != 0) {
+      return cloudfs_error("release: set_metadata failed");
+    }
   }
 
   return 0;
@@ -226,12 +235,9 @@ int cloud_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t off
   if(entry == NULL) {
     return cloudfs_error("readdir: ssd failed");
   }
-  // need to skip filename starting with '.'
   do {
-    if(entry->d_name[0] != '.') {
-      if(filler(buf, entry->d_name, NULL, 0) != 0) {
-        return cloudfs_error("readdir: filler failed");
-      }
+    if(filler(buf, entry->d_name, NULL, 0) != 0) {
+      return cloudfs_error("readdir: filler failed");
     }
   } while((entry = readdir(dir)) != NULL);
   return 0;
@@ -313,7 +319,7 @@ int cloud_rmdir(const char* path) {
 
 int cloud_truncate(const char* path, off_t size) {
   auto ssd_path = state_.ssd_path + std::string(path);
-  auto ret = truncate(ssd_path.c_str(), size);
+  auto ret = truncate(ssd_path.c_str(), size + METADATA_SIZE); // do not truncate the metadata
   if(ret < 0) {
     return cloudfs_error("truncate: ssd failed");
   }

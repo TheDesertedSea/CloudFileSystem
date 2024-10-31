@@ -2,7 +2,7 @@ CMakeFiles/cloudfs.dir/cloudfs/data.cc.o: \
  /home/student/cmu15746-project2/src/cloudfs/data.cc \
  /usr/include/stdc-predef.h \
  /home/student/cmu15746-project2/src/cloudfs/data.h \
- /usr/include/c++/11/cstddef \
+ /usr/include/c++/11/string \
  /usr/include/x86_64-linux-gnu/c++/11/bits/c++config.h \
  /usr/include/x86_64-linux-gnu/c++/11/bits/os_defines.h \
  /usr/include/features.h /usr/include/features-time64.h \
@@ -13,8 +13,7 @@ CMakeFiles/cloudfs.dir/cloudfs/data.cc.o: \
  /usr/include/x86_64-linux-gnu/gnu/stubs.h \
  /usr/include/x86_64-linux-gnu/gnu/stubs-64.h \
  /usr/include/x86_64-linux-gnu/c++/11/bits/cpu_defines.h \
- /usr/lib/gcc/x86_64-linux-gnu/11/include/stddef.h \
- /usr/include/c++/11/string /usr/include/c++/11/bits/stringfwd.h \
+ /usr/include/c++/11/bits/stringfwd.h \
  /usr/include/c++/11/bits/memoryfwd.h \
  /usr/include/c++/11/bits/char_traits.h \
  /usr/include/c++/11/bits/stl_algobase.h \
@@ -37,6 +36,7 @@ CMakeFiles/cloudfs.dir/cloudfs/data.cc.o: \
  /usr/include/x86_64-linux-gnu/bits/libc-header-start.h \
  /usr/include/x86_64-linux-gnu/bits/floatn.h \
  /usr/include/x86_64-linux-gnu/bits/floatn-common.h \
+ /usr/lib/gcc/x86_64-linux-gnu/11/include/stddef.h \
  /usr/lib/gcc/x86_64-linux-gnu/11/include/stdarg.h \
  /usr/include/x86_64-linux-gnu/bits/wchar.h \
  /usr/include/x86_64-linux-gnu/bits/types/wint_t.h \
@@ -128,6 +128,7 @@ CMakeFiles/cloudfs.dir/cloudfs/data.cc.o: \
  /usr/include/c++/11/bits/functional_hash.h \
  /usr/include/c++/11/bits/hash_bytes.h \
  /usr/include/c++/11/bits/basic_string.tcc \
+ /home/student/cmu15746-project2/src/cloudfs/metadata.h \
  /home/student/cmu15746-project2/src/cloud-lib/cloudapi.h \
  /usr/include/libs3.h /home/student/cmu15746-project2/src/cloudfs/util.h \
  /usr/include/c++/11/vector /usr/include/c++/11/bits/stl_uninitialized.h \
