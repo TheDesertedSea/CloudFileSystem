@@ -32,6 +32,10 @@ static struct cloudfs_state state_;
 
 static std::string bukcet_name = "cloudfs";
 
+static const std::string log_path = "/tmp/cloudfs.log";
+
+static FILE *log_file;
+
 /*
  * Initializes the FUSE file system (cloudfs) by checking if the mount points
  * are valid, and if all is well, it mounts the file system ready for usage.
@@ -51,19 +55,20 @@ static int cloudfs_error(const std::string& error_str)
 {
     auto retval = -errno;
 
-    debug_print("[CloudFS Error] " +  error_str);
+    debug_print("[CloudFS Error] " +  error_str, log_file);
 
     /* FUSE always returns -errno to caller (yes, it is negative errno!) */
     return retval;
 }
 
 static void cloudfs_info(const std::string& info_str) {
-  debug_print("[CloudFS Info] " + info_str);
+  debug_print("[CloudFS Info] " + info_str, log_file);
 }
 
 int cloudfs_getattr(const char *path, struct stat *statbuf)
 {
   auto ssd_path = state_.ssd_path + std::string(path);
+  cloudfs_info("getattr: " + ssd_path);
 
   struct stat st;
   auto ret = stat(ssd_path.c_str(), &st);
@@ -146,10 +151,48 @@ int cloudfs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
 int cloudfs_open(const char *path, struct fuse_file_info *fi)
 {
+  cloudfs_info("open: " + std::string(path));
   auto ssd_path = state_.ssd_path + std::string(path);
   auto fd = open(ssd_path.c_str(), fi->flags);
   if(fd < 0) {
-    return cloudfs_error("open: ssd failed");
+    if(errno != ENOENT) {
+      return cloudfs_error("open: ssd failed");
+    }
+    // try to find the file under state_.fuse_path
+    // if found, move to ssd_path
+    cloudfs_info("open: try to find file back from fuse_path");
+    auto fuse_path = state_.fuse_path + std::string(path);
+    auto fuse_file = fopen(fuse_path.c_str(), "rb");
+    if(fuse_file == NULL) {
+      return cloudfs_error("open: read lost+found file failed");
+    }
+
+    Metadata metadata;
+    metadata.size = 0;
+    metadata.is_on_cloud = false;
+    set_metadata(ssd_path, metadata);
+
+    char buffer[4096];
+    size_t size;
+
+    auto ssd_file = fopen(ssd_path.c_str(), "wb");
+    if(ssd_file == NULL) {
+      return cloudfs_error("open: write ssd file failed");
+    }
+    auto ret = fseek(ssd_file, METADATA_SIZE, SEEK_SET);
+    if(ret < 0) {
+      return cloudfs_error("open: fseek ssd failed");
+    }
+    while((size = fread(buffer, 1, 4096, fuse_file)) > 0) {
+      fwrite(buffer, 1, size, ssd_file);
+    }
+
+    fclose(fuse_file);
+    fclose(ssd_file);
+    fd = open(ssd_path.c_str(), fi->flags);
+    if(fd < 0) {
+      return cloudfs_error("open: ssd failed");
+    }
   }
   fi->fh = fd;
 
@@ -164,8 +207,8 @@ int cloudfs_open(const char *path, struct fuse_file_info *fi)
     set_metadata(ssd_path, metadata);
   }
 
-  // skip the first METADATA_SIZE bytes
-  lseek(fd, METADATA_SIZE, SEEK_SET);
+  // // skip the first METADATA_SIZE bytes
+  // lseek(fd, METADATA_SIZE, SEEK_SET);
   
   return 0;
 }
@@ -173,7 +216,7 @@ int cloudfs_open(const char *path, struct fuse_file_info *fi)
 int cloudfs_read(const char *path, char *buf, size_t count, off_t offset, struct fuse_file_info *fi)
 {
   auto fd = fi->fh;
-  auto ret = pread(fd, buf, count, offset);
+  auto ret = pread(fd, buf, count, offset + METADATA_SIZE);
   if(ret < 0) {
     return cloudfs_error("read: ssd failed");
   }
@@ -181,8 +224,9 @@ int cloudfs_read(const char *path, char *buf, size_t count, off_t offset, struct
 }
 
 int cloud_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+  cloudfs_info("write: " + std::string(path) + " size = " + std::to_string(size) + " offset = " + std::to_string(offset));
   auto fd = fi->fh;
-  auto ret = pwrite(fd, buf, size, offset);
+  auto ret = pwrite(fd, buf, size, offset + METADATA_SIZE);
   if(ret < 0) {
     return cloudfs_error("write: ssd failed");
   }
@@ -190,6 +234,8 @@ int cloud_write(const char *path, const char *buf, size_t size, off_t offset, st
 }
 
 int cloud_release(const char *path, struct fuse_file_info *fi) {
+  cloudfs_info("release: " + std::string(path));
+
   auto fd = fi->fh;
   auto ret = close(fd);
   if(ret < 0) {
@@ -200,7 +246,9 @@ int cloud_release(const char *path, struct fuse_file_info *fi) {
   struct stat stat_buf;
   lstat(ssd_path.c_str(), &stat_buf);
   auto size = stat_buf.st_size - METADATA_SIZE;
+  cloudfs_info("release: size = " + std::to_string(size));
   if(size > (size_t)state_.threshold * 1024) {
+    // upload the file to cloud
     upload_data(ssd_path, bukcet_name, generate_object_key(ssd_path), size);
     // clear the file
     auto ret = truncate(ssd_path.c_str(), METADATA_SIZE);
@@ -210,6 +258,23 @@ int cloud_release(const char *path, struct fuse_file_info *fi) {
     Metadata metadata;
     metadata.size = size;
     metadata.is_on_cloud = true;
+    ret = set_metadata(ssd_path, metadata);
+    if(ret != 0) {
+      return cloudfs_error("release: set_metadata failed");
+    }
+  } else {
+    // keep at ssd
+    Metadata metadata;
+    auto ret = get_metadata(ssd_path, metadata);
+    if(ret != 0) {
+      return cloudfs_error("release: get_metadata failed");
+    }
+    if(metadata.is_on_cloud) {
+      // delete the object on cloud
+      delete_data(bukcet_name, generate_object_key(ssd_path));
+    }
+    metadata.size = size;
+    metadata.is_on_cloud = false;
     ret = set_metadata(ssd_path, metadata);
     if(ret != 0) {
       return cloudfs_error("release: set_metadata failed");
@@ -330,7 +395,6 @@ static struct fuse_operations cloudfs_operations;
 
 int cloudfs_start(struct cloudfs_state *state,
                   const char* fuse_runtime_name) {
-  cloudfs_info("Starting CloudFS");
   // This is where you add the VFS functions for your implementation of CloudFS.
   // You are NOT required to implement most of these operations, see the writeup
   //
@@ -378,6 +442,10 @@ int cloudfs_start(struct cloudfs_state *state,
 
   state_  = *state;
 
+  log_file = fopen("/tmp/cloudfs.log", "w");
+  /* To ensure that a log of content is not buffered */
+  setvbuf(log_file, NULL, _IOLBF, 0);
+  cloudfs_info("Starting CloudFS");
   int fuse_stat = fuse_main(argc, argv, &cloudfs_operations, NULL);
     
   return fuse_stat;

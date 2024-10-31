@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-void debug_print(const std::string& msg);
+void debug_print(const std::string& msg, FILE* file = stdout);
 
 // Returns the absolute path segments of the given path
 std::vector<std::string> get_absolute_path(const std::string& path);

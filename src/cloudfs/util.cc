@@ -1,13 +1,13 @@
 #include "util.h"
+#include <cstdio>
 
 #define PATH_MAX 4096
 
 #include <unistd.h>
-#include <iostream>
 #include <sstream>
 
-void debug_print(const std::string& msg) {
-    std::cerr << msg << std::endl;
+void debug_print(const std::string& msg, FILE* file) {
+    fprintf(file, "%s\n", msg.c_str());
 }
 
 std::vector<std::string> get_absolute_path(const std::string& path) {

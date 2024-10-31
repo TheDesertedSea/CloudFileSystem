@@ -3,7 +3,7 @@
 #include <cstdio>
 
 int get_metadata(const std::string& path, Metadata& metadata) {
-    FILE* file = fopen(path.c_str(), "r");
+    FILE* file = fopen(path.c_str(), "rb");
     if (file == NULL) {
         return -1;
     }
@@ -16,7 +16,7 @@ int get_metadata(const std::string& path, Metadata& metadata) {
 }
 
 int set_metadata(const std::string& path, const Metadata& metadata) {
-    FILE* file = fopen(path.c_str(), "w");
+    FILE* file = fopen(path.c_str(), "wb");
     if (file == NULL) {
         return -1;
     }

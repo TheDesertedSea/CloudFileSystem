@@ -35,3 +35,8 @@ void upload_data(const std::string& path, const std::string& bucket_name, const 
     fclose(infile);
     cloud_print_error();
 }
+
+void delete_data(const std::string& bucket_name, const std::string& object_key) {
+    cloud_delete_object(bucket_name.c_str(), object_key.c_str());
+    cloud_print_error();
+}
