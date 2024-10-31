@@ -8,7 +8,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/home/student/src/snapshot/snapshot-test.c" "snapshot/CMakeFiles/snapshot.dir/snapshot-test.c.o" "gcc" "snapshot/CMakeFiles/snapshot.dir/snapshot-test.c.o.d"
+  "/home/student/cmu15746-project2/src/snapshot/snapshot-test.c" "snapshot/CMakeFiles/snapshot.dir/snapshot-test.c.o" "gcc" "snapshot/CMakeFiles/snapshot.dir/snapshot-test.c.o.d"
   )
 
 # Targets to which this target links.

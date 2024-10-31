@@ -1,4 +1,4 @@
-# Install script for directory: /home/student/src/snapshot
+# Install script for directory: /home/student/cmu15746-project2/src/snapshot
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

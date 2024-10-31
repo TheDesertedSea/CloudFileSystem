@@ -53,10 +53,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/student/src
+CMAKE_SOURCE_DIR = /home/student/cmu15746-project2/src
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/student/src/build
+CMAKE_BINARY_DIR = /home/student/cmu15746-project2/src/build
 
 # Utility rule file for snapshot-api.
 
@@ -74,10 +74,10 @@ snapshot/CMakeFiles/snapshot-api.dir/build: snapshot-api
 .PHONY : snapshot/CMakeFiles/snapshot-api.dir/build
 
 snapshot/CMakeFiles/snapshot-api.dir/clean:
-	cd /home/student/src/build/snapshot && $(CMAKE_COMMAND) -P CMakeFiles/snapshot-api.dir/cmake_clean.cmake
+	cd /home/student/cmu15746-project2/src/build/snapshot && $(CMAKE_COMMAND) -P CMakeFiles/snapshot-api.dir/cmake_clean.cmake
 .PHONY : snapshot/CMakeFiles/snapshot-api.dir/clean
 
 snapshot/CMakeFiles/snapshot-api.dir/depend:
-	cd /home/student/src/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/student/src /home/student/src/snapshot /home/student/src/build /home/student/src/build/snapshot /home/student/src/build/snapshot/CMakeFiles/snapshot-api.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/student/cmu15746-project2/src/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/student/cmu15746-project2/src /home/student/cmu15746-project2/src/snapshot /home/student/cmu15746-project2/src/build /home/student/cmu15746-project2/src/build/snapshot /home/student/cmu15746-project2/src/build/snapshot/CMakeFiles/snapshot-api.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : snapshot/CMakeFiles/snapshot-api.dir/depend
 

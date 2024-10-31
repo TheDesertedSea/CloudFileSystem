@@ -57,10 +57,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/student/src
+CMAKE_SOURCE_DIR = /home/student/cmu15746-project2/src
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/student/src/build
+CMAKE_BINARY_DIR = /home/student/cmu15746-project2/src/build
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -87,14 +87,14 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	cd /home/student/src/build && $(CMAKE_COMMAND) -E cmake_progress_start /home/student/src/build/CMakeFiles /home/student/src/build/snapshot//CMakeFiles/progress.marks
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 snapshot/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/student/src/build/CMakeFiles 0
+	cd /home/student/cmu15746-project2/src/build && $(CMAKE_COMMAND) -E cmake_progress_start /home/student/cmu15746-project2/src/build/CMakeFiles /home/student/cmu15746-project2/src/build/snapshot//CMakeFiles/progress.marks
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 snapshot/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/student/cmu15746-project2/src/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 snapshot/clean
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 snapshot/clean
 .PHONY : clean
 
 # The main clean target
@@ -103,22 +103,22 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 snapshot/preinstall
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 snapshot/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 snapshot/preinstall
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 snapshot/preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	cd /home/student/src/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	cd /home/student/cmu15746-project2/src/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
 # Convenience name for target.
 snapshot/CMakeFiles/snapshot.dir/rule:
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 snapshot/CMakeFiles/snapshot.dir/rule
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 snapshot/CMakeFiles/snapshot.dir/rule
 .PHONY : snapshot/CMakeFiles/snapshot.dir/rule
 
 # Convenience name for target.
@@ -127,7 +127,7 @@ snapshot: snapshot/CMakeFiles/snapshot.dir/rule
 
 # fast build rule for target.
 snapshot/fast:
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f snapshot/CMakeFiles/snapshot.dir/build.make snapshot/CMakeFiles/snapshot.dir/build
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f snapshot/CMakeFiles/snapshot.dir/build.make snapshot/CMakeFiles/snapshot.dir/build
 .PHONY : snapshot/fast
 
 snapshot-test.o: snapshot-test.c.o
@@ -135,7 +135,7 @@ snapshot-test.o: snapshot-test.c.o
 
 # target to build an object file
 snapshot-test.c.o:
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f snapshot/CMakeFiles/snapshot.dir/build.make snapshot/CMakeFiles/snapshot.dir/snapshot-test.c.o
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f snapshot/CMakeFiles/snapshot.dir/build.make snapshot/CMakeFiles/snapshot.dir/snapshot-test.c.o
 .PHONY : snapshot-test.c.o
 
 snapshot-test.i: snapshot-test.c.i
@@ -143,7 +143,7 @@ snapshot-test.i: snapshot-test.c.i
 
 # target to preprocess a source file
 snapshot-test.c.i:
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f snapshot/CMakeFiles/snapshot.dir/build.make snapshot/CMakeFiles/snapshot.dir/snapshot-test.c.i
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f snapshot/CMakeFiles/snapshot.dir/build.make snapshot/CMakeFiles/snapshot.dir/snapshot-test.c.i
 .PHONY : snapshot-test.c.i
 
 snapshot-test.s: snapshot-test.c.s
@@ -151,7 +151,7 @@ snapshot-test.s: snapshot-test.c.s
 
 # target to generate assembly for a file
 snapshot-test.c.s:
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f snapshot/CMakeFiles/snapshot.dir/build.make snapshot/CMakeFiles/snapshot.dir/snapshot-test.c.s
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f snapshot/CMakeFiles/snapshot.dir/build.make snapshot/CMakeFiles/snapshot.dir/snapshot-test.c.s
 .PHONY : snapshot-test.c.s
 
 # Help Target
@@ -178,6 +178,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	cd /home/student/src/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	cd /home/student/cmu15746-project2/src/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 

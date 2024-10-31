@@ -1,7 +1,7 @@
 snapshot/CMakeFiles/snapshot.dir/snapshot-test.c.o: \
- /home/student/src/snapshot/snapshot-test.c /usr/include/stdc-predef.h \
- /usr/include/x86_64-linux-gnu/sys/types.h /usr/include/features.h \
- /usr/include/features-time64.h \
+ /home/student/cmu15746-project2/src/snapshot/snapshot-test.c \
+ /usr/include/stdc-predef.h /usr/include/x86_64-linux-gnu/sys/types.h \
+ /usr/include/features.h /usr/include/features-time64.h \
  /usr/include/x86_64-linux-gnu/bits/wordsize.h \
  /usr/include/x86_64-linux-gnu/bits/timesize.h \
  /usr/include/x86_64-linux-gnu/sys/cdefs.h \
@@ -63,4 +63,4 @@ snapshot/CMakeFiles/snapshot.dir/snapshot-test.c.o: \
  /usr/include/x86_64-linux-gnu/bits/stdlib-float.h /usr/include/ctype.h \
  /usr/include/x86_64-linux-gnu/bits/types/locale_t.h \
  /usr/include/x86_64-linux-gnu/bits/types/__locale_t.h \
- /home/student/src/snapshot/../snapshot/snapshot-api.h
+ /home/student/cmu15746-project2/src/snapshot/../snapshot/snapshot-api.h

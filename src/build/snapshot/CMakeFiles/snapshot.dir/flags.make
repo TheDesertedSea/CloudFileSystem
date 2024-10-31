@@ -4,7 +4,7 @@
 # compile C with /usr/bin/cc
 C_DEFINES = 
 
-C_INCLUDES = -I/home/student/src/snapshot
+C_INCLUDES = -I/home/student/cmu15746-project2/src/snapshot
 
 C_FLAGS = 
 

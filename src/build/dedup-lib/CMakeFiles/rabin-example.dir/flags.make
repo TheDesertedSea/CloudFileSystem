@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I/home/student/src/dedup-lib
+CXX_INCLUDES = -I/home/student/cmu15746-project2/src/dedup-lib
 
 CXX_FLAGS = -Wall -fPIC -std=gnu++11
 

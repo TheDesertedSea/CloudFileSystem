@@ -1,5 +1,5 @@
 archive-lib/CMakeFiles/archive-example.dir/archive_example.cc.o: \
- /home/student/src/archive-lib/archive_example.cc \
+ /home/student/cmu15746-project2/src/archive-lib/archive_example.cc \
  /usr/include/stdc-predef.h /usr/include/unistd.h /usr/include/features.h \
  /usr/include/features-time64.h \
  /usr/include/x86_64-linux-gnu/bits/wordsize.h \
@@ -19,7 +19,8 @@ archive-lib/CMakeFiles/archive-example.dir/archive_example.cc.o: \
  /usr/include/x86_64-linux-gnu/bits/getopt_core.h \
  /usr/include/x86_64-linux-gnu/bits/unistd_ext.h \
  /usr/include/linux/close_range.h \
- /home/student/src/archive-lib/archive_util.h /usr/include/c++/11/string \
+ /home/student/cmu15746-project2/src/archive-lib/archive_util.h \
+ /usr/include/c++/11/string \
  /usr/include/x86_64-linux-gnu/c++/11/bits/c++config.h \
  /usr/include/x86_64-linux-gnu/c++/11/bits/os_defines.h \
  /usr/include/x86_64-linux-gnu/c++/11/bits/cpu_defines.h \
@@ -138,4 +139,4 @@ archive-lib/CMakeFiles/archive-example.dir/archive_example.cc.o: \
  /usr/include/c++/11/bits/stl_vector.h \
  /usr/include/c++/11/bits/stl_bvector.h \
  /usr/include/c++/11/bits/vector.tcc \
- /home/student/src/build/archive-lib/path.h
+ /home/student/cmu15746-project2/src/build/archive-lib/path.h

@@ -1,6 +1,7 @@
 dedup-lib/CMakeFiles/dedup.dir/msb.cc.o: \
- /home/student/src/dedup-lib/msb.cc /usr/include/stdc-predef.h \
- /home/student/src/dedup-lib/msb.h \
+ /home/student/cmu15746-project2/src/dedup-lib/msb.cc \
+ /usr/include/stdc-predef.h \
+ /home/student/cmu15746-project2/src/dedup-lib/msb.h \
  /usr/include/x86_64-linux-gnu/sys/types.h /usr/include/features.h \
  /usr/include/features-time64.h \
  /usr/include/x86_64-linux-gnu/bits/wordsize.h \

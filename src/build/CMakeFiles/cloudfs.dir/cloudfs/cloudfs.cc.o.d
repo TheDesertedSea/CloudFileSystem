@@ -1,6 +1,6 @@
 CMakeFiles/cloudfs.dir/cloudfs/cloudfs.cc.o: \
- /home/student/src/cloudfs/cloudfs.cc /usr/include/stdc-predef.h \
- /usr/include/c++/11/cstdio \
+ /home/student/cmu15746-project2/src/cloudfs/cloudfs.cc \
+ /usr/include/stdc-predef.h /usr/include/c++/11/cstdio \
  /usr/include/x86_64-linux-gnu/c++/11/bits/c++config.h \
  /usr/include/x86_64-linux-gnu/c++/11/bits/os_defines.h \
  /usr/include/features.h /usr/include/features-time64.h \
@@ -196,24 +196,12 @@ CMakeFiles/cloudfs.dir/cloudfs/cloudfs.cc.o: \
  /usr/include/x86_64-linux-gnu/bits/confname.h \
  /usr/include/x86_64-linux-gnu/bits/getopt_posix.h \
  /usr/include/x86_64-linux-gnu/bits/unistd_ext.h \
- /usr/include/linux/close_range.h /home/student/src/cloud-lib/cloudapi.h \
- /usr/include/libs3.h /home/student/src/dedup-lib/dedup.h \
- /home/student/src/cloudfs/cloudfs.h /home/student/src/cloudfs/util.h \
- /home/student/src/cloudfs/metadata.h /home/student/src/cloudfs/data.h \
- /usr/include/c++/11/memory /usr/include/c++/11/bits/stl_tempbuf.h \
- /usr/include/c++/11/bits/stl_raw_storage_iter.h \
- /usr/include/c++/11/bits/align.h /usr/include/c++/11/bit \
- /usr/include/c++/11/bits/uses_allocator.h \
- /usr/include/c++/11/bits/unique_ptr.h /usr/include/c++/11/utility \
- /usr/include/c++/11/bits/stl_relops.h /usr/include/c++/11/tuple \
- /usr/include/c++/11/array /usr/include/c++/11/bits/invoke.h \
- /usr/include/c++/11/bits/shared_ptr.h \
- /usr/include/c++/11/bits/shared_ptr_base.h \
- /usr/include/c++/11/bits/allocated_ptr.h \
- /usr/include/c++/11/bits/refwrap.h \
- /usr/include/c++/11/ext/aligned_buffer.h \
- /usr/include/c++/11/ext/concurrence.h \
- /usr/include/c++/11/bits/shared_ptr_atomic.h \
- /usr/include/c++/11/bits/atomic_base.h \
- /usr/include/c++/11/bits/atomic_lockfree_defines.h \
- /usr/include/c++/11/backward/auto_ptr.h
+ /usr/include/linux/close_range.h \
+ /home/student/cmu15746-project2/src/cloud-lib/cloudapi.h \
+ /usr/include/libs3.h \
+ /home/student/cmu15746-project2/src/dedup-lib/dedup.h \
+ /home/student/cmu15746-project2/src/cloudfs/cloudfs.h \
+ /home/student/cmu15746-project2/src/cloudfs/util.h \
+ /home/student/cmu15746-project2/src/cloudfs/metadata.h \
+ /home/student/cmu15746-project2/src/cloudfs/data.h \
+ /usr/include/c++/11/cstddef

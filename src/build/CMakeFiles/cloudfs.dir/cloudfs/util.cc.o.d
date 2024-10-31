@@ -1,6 +1,8 @@
 CMakeFiles/cloudfs.dir/cloudfs/util.cc.o: \
- /home/student/src/cloudfs/util.cc /usr/include/stdc-predef.h \
- /home/student/src/cloudfs/util.h /usr/include/c++/11/string \
+ /home/student/cmu15746-project2/src/cloudfs/util.cc \
+ /usr/include/stdc-predef.h \
+ /home/student/cmu15746-project2/src/cloudfs/util.h \
+ /usr/include/c++/11/string \
  /usr/include/x86_64-linux-gnu/c++/11/bits/c++config.h \
  /usr/include/x86_64-linux-gnu/c++/11/bits/os_defines.h \
  /usr/include/features.h /usr/include/features-time64.h \

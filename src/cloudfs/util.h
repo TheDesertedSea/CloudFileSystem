@@ -14,7 +14,7 @@ std::vector<std::string> split_path(const std::string& path);
 // Normalizes a path by removing ".." and "." segments
 std::vector<std::string> normalize_path(const std::vector<std::string>& path_segments);
 
-std::string get_proxy_path(const std::string& ssd_path);
+std::string get_metadata_path(const std::string& path);
 
 std::string generate_object_key(const std::string& path);
 

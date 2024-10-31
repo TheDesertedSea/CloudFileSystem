@@ -1,6 +1,6 @@
 CMakeFiles/cloudfs.dir/cloudfs/main.cc.o: \
- /home/student/src/cloudfs/main.cc /usr/include/stdc-predef.h \
- /usr/include/getopt.h /usr/include/features.h \
+ /home/student/cmu15746-project2/src/cloudfs/main.cc \
+ /usr/include/stdc-predef.h /usr/include/getopt.h /usr/include/features.h \
  /usr/include/features-time64.h \
  /usr/include/x86_64-linux-gnu/bits/wordsize.h \
  /usr/include/x86_64-linux-gnu/bits/timesize.h \
@@ -58,4 +58,5 @@ CMakeFiles/cloudfs.dir/cloudfs/main.cc.o: \
  /usr/include/x86_64-linux-gnu/bits/struct_rwlock.h /usr/include/alloca.h \
  /usr/include/x86_64-linux-gnu/bits/stdlib-float.h \
  /usr/include/c++/11/bits/std_abs.h /usr/include/string.h \
- /usr/include/strings.h /home/student/src/cloudfs/cloudfs.h
+ /usr/include/strings.h \
+ /home/student/cmu15746-project2/src/cloudfs/cloudfs.h

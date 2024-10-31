@@ -57,10 +57,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/student/src
+CMAKE_SOURCE_DIR = /home/student/cmu15746-project2/src
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/student/src/build
+CMAKE_BINARY_DIR = /home/student/cmu15746-project2/src/build
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -87,14 +87,14 @@ rebuild_cache/fast: rebuild_cache
 
 # The main all target
 all: cmake_check_build_system
-	cd /home/student/src/build && $(CMAKE_COMMAND) -E cmake_progress_start /home/student/src/build/CMakeFiles /home/student/src/build/archive-lib//CMakeFiles/progress.marks
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 archive-lib/all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/student/src/build/CMakeFiles 0
+	cd /home/student/cmu15746-project2/src/build && $(CMAKE_COMMAND) -E cmake_progress_start /home/student/cmu15746-project2/src/build/CMakeFiles /home/student/cmu15746-project2/src/build/archive-lib//CMakeFiles/progress.marks
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 archive-lib/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/student/cmu15746-project2/src/build/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
 clean:
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 archive-lib/clean
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 archive-lib/clean
 .PHONY : clean
 
 # The main clean target
@@ -103,22 +103,22 @@ clean/fast: clean
 
 # Prepare targets for installation.
 preinstall: all
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 archive-lib/preinstall
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 archive-lib/preinstall
 .PHONY : preinstall
 
 # Prepare targets for installation.
 preinstall/fast:
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 archive-lib/preinstall
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 archive-lib/preinstall
 .PHONY : preinstall/fast
 
 # clear depends
 depend:
-	cd /home/student/src/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
+	cd /home/student/cmu15746-project2/src/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 1
 .PHONY : depend
 
 # Convenience name for target.
 archive-lib/CMakeFiles/archive-util.dir/rule:
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 archive-lib/CMakeFiles/archive-util.dir/rule
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 archive-lib/CMakeFiles/archive-util.dir/rule
 .PHONY : archive-lib/CMakeFiles/archive-util.dir/rule
 
 # Convenience name for target.
@@ -127,12 +127,12 @@ archive-util: archive-lib/CMakeFiles/archive-util.dir/rule
 
 # fast build rule for target.
 archive-util/fast:
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f archive-lib/CMakeFiles/archive-util.dir/build.make archive-lib/CMakeFiles/archive-util.dir/build
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f archive-lib/CMakeFiles/archive-util.dir/build.make archive-lib/CMakeFiles/archive-util.dir/build
 .PHONY : archive-util/fast
 
 # Convenience name for target.
 archive-lib/CMakeFiles/archive-example.dir/rule:
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 archive-lib/CMakeFiles/archive-example.dir/rule
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 archive-lib/CMakeFiles/archive-example.dir/rule
 .PHONY : archive-lib/CMakeFiles/archive-example.dir/rule
 
 # Convenience name for target.
@@ -141,7 +141,7 @@ archive-example: archive-lib/CMakeFiles/archive-example.dir/rule
 
 # fast build rule for target.
 archive-example/fast:
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f archive-lib/CMakeFiles/archive-example.dir/build.make archive-lib/CMakeFiles/archive-example.dir/build
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f archive-lib/CMakeFiles/archive-example.dir/build.make archive-lib/CMakeFiles/archive-example.dir/build
 .PHONY : archive-example/fast
 
 archive_example.o: archive_example.cc.o
@@ -149,7 +149,7 @@ archive_example.o: archive_example.cc.o
 
 # target to build an object file
 archive_example.cc.o:
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f archive-lib/CMakeFiles/archive-example.dir/build.make archive-lib/CMakeFiles/archive-example.dir/archive_example.cc.o
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f archive-lib/CMakeFiles/archive-example.dir/build.make archive-lib/CMakeFiles/archive-example.dir/archive_example.cc.o
 .PHONY : archive_example.cc.o
 
 archive_example.i: archive_example.cc.i
@@ -157,7 +157,7 @@ archive_example.i: archive_example.cc.i
 
 # target to preprocess a source file
 archive_example.cc.i:
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f archive-lib/CMakeFiles/archive-example.dir/build.make archive-lib/CMakeFiles/archive-example.dir/archive_example.cc.i
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f archive-lib/CMakeFiles/archive-example.dir/build.make archive-lib/CMakeFiles/archive-example.dir/archive_example.cc.i
 .PHONY : archive_example.cc.i
 
 archive_example.s: archive_example.cc.s
@@ -165,7 +165,7 @@ archive_example.s: archive_example.cc.s
 
 # target to generate assembly for a file
 archive_example.cc.s:
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f archive-lib/CMakeFiles/archive-example.dir/build.make archive-lib/CMakeFiles/archive-example.dir/archive_example.cc.s
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f archive-lib/CMakeFiles/archive-example.dir/build.make archive-lib/CMakeFiles/archive-example.dir/archive_example.cc.s
 .PHONY : archive_example.cc.s
 
 archive_util.o: archive_util.cc.o
@@ -173,7 +173,7 @@ archive_util.o: archive_util.cc.o
 
 # target to build an object file
 archive_util.cc.o:
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f archive-lib/CMakeFiles/archive-util.dir/build.make archive-lib/CMakeFiles/archive-util.dir/archive_util.cc.o
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f archive-lib/CMakeFiles/archive-util.dir/build.make archive-lib/CMakeFiles/archive-util.dir/archive_util.cc.o
 .PHONY : archive_util.cc.o
 
 archive_util.i: archive_util.cc.i
@@ -181,7 +181,7 @@ archive_util.i: archive_util.cc.i
 
 # target to preprocess a source file
 archive_util.cc.i:
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f archive-lib/CMakeFiles/archive-util.dir/build.make archive-lib/CMakeFiles/archive-util.dir/archive_util.cc.i
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f archive-lib/CMakeFiles/archive-util.dir/build.make archive-lib/CMakeFiles/archive-util.dir/archive_util.cc.i
 .PHONY : archive_util.cc.i
 
 archive_util.s: archive_util.cc.s
@@ -189,7 +189,7 @@ archive_util.s: archive_util.cc.s
 
 # target to generate assembly for a file
 archive_util.cc.s:
-	cd /home/student/src/build && $(MAKE) $(MAKESILENT) -f archive-lib/CMakeFiles/archive-util.dir/build.make archive-lib/CMakeFiles/archive-util.dir/archive_util.cc.s
+	cd /home/student/cmu15746-project2/src/build && $(MAKE) $(MAKESILENT) -f archive-lib/CMakeFiles/archive-util.dir/build.make archive-lib/CMakeFiles/archive-util.dir/archive_util.cc.s
 .PHONY : archive_util.cc.s
 
 # Help Target
@@ -219,6 +219,6 @@ help:
 # No rule that depends on this can have commands that come from listfiles
 # because they might be regenerated.
 cmake_check_build_system:
-	cd /home/student/src/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
+	cd /home/student/cmu15746-project2/src/build && $(CMAKE_COMMAND) -S$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR) --check-build-system CMakeFiles/Makefile.cmake 0
 .PHONY : cmake_check_build_system
 

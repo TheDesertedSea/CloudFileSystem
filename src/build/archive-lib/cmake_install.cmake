@@ -1,4 +1,4 @@
-# Install script for directory: /home/student/src/archive-lib
+# Install script for directory: /home/student/cmu15746-project2/src/archive-lib
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)

@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = -DFUSE_USE_VERSION=26 -D_FILE_OFFSET_BITS=64
 
-CXX_INCLUDES = -I/home/student/src/cloud-lib -I/home/student/src/archive-lib -I/home/student/src/dedup-lib -I/home/student/src/snapshot
+CXX_INCLUDES = -I/home/student/cmu15746-project2/src/cloud-lib -I/home/student/cmu15746-project2/src/archive-lib -I/home/student/cmu15746-project2/src/dedup-lib -I/home/student/cmu15746-project2/src/snapshot
 
 CXX_FLAGS = -Wall -fPIC -std=gnu++11
 

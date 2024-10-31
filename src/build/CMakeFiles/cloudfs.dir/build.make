@@ -53,10 +53,10 @@ RM = /usr/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /home/student/src
+CMAKE_SOURCE_DIR = /home/student/cmu15746-project2/src
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/student/src/build
+CMAKE_BINARY_DIR = /home/student/cmu15746-project2/src/build
 
 # Include any dependencies generated for this target.
 include CMakeFiles/cloudfs.dir/depend.make
@@ -72,100 +72,100 @@ include CMakeFiles/cloudfs.dir/flags.make
 CMakeFiles/cloudfs.dir/cloud-lib/cloudapi.cc.o: CMakeFiles/cloudfs.dir/flags.make
 CMakeFiles/cloudfs.dir/cloud-lib/cloudapi.cc.o: ../cloud-lib/cloudapi.cc
 CMakeFiles/cloudfs.dir/cloud-lib/cloudapi.cc.o: CMakeFiles/cloudfs.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/student/src/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/cloudfs.dir/cloud-lib/cloudapi.cc.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/cloudfs.dir/cloud-lib/cloudapi.cc.o -MF CMakeFiles/cloudfs.dir/cloud-lib/cloudapi.cc.o.d -o CMakeFiles/cloudfs.dir/cloud-lib/cloudapi.cc.o -c /home/student/src/cloud-lib/cloudapi.cc
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/student/cmu15746-project2/src/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object CMakeFiles/cloudfs.dir/cloud-lib/cloudapi.cc.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/cloudfs.dir/cloud-lib/cloudapi.cc.o -MF CMakeFiles/cloudfs.dir/cloud-lib/cloudapi.cc.o.d -o CMakeFiles/cloudfs.dir/cloud-lib/cloudapi.cc.o -c /home/student/cmu15746-project2/src/cloud-lib/cloudapi.cc
 
 CMakeFiles/cloudfs.dir/cloud-lib/cloudapi.cc.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/cloudfs.dir/cloud-lib/cloudapi.cc.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/student/src/cloud-lib/cloudapi.cc > CMakeFiles/cloudfs.dir/cloud-lib/cloudapi.cc.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/student/cmu15746-project2/src/cloud-lib/cloudapi.cc > CMakeFiles/cloudfs.dir/cloud-lib/cloudapi.cc.i
 
 CMakeFiles/cloudfs.dir/cloud-lib/cloudapi.cc.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/cloudfs.dir/cloud-lib/cloudapi.cc.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/student/src/cloud-lib/cloudapi.cc -o CMakeFiles/cloudfs.dir/cloud-lib/cloudapi.cc.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/student/cmu15746-project2/src/cloud-lib/cloudapi.cc -o CMakeFiles/cloudfs.dir/cloud-lib/cloudapi.cc.s
 
 CMakeFiles/cloudfs.dir/cloud-lib/cloudapi_print.cc.o: CMakeFiles/cloudfs.dir/flags.make
 CMakeFiles/cloudfs.dir/cloud-lib/cloudapi_print.cc.o: ../cloud-lib/cloudapi_print.cc
 CMakeFiles/cloudfs.dir/cloud-lib/cloudapi_print.cc.o: CMakeFiles/cloudfs.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/student/src/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/cloudfs.dir/cloud-lib/cloudapi_print.cc.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/cloudfs.dir/cloud-lib/cloudapi_print.cc.o -MF CMakeFiles/cloudfs.dir/cloud-lib/cloudapi_print.cc.o.d -o CMakeFiles/cloudfs.dir/cloud-lib/cloudapi_print.cc.o -c /home/student/src/cloud-lib/cloudapi_print.cc
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/student/cmu15746-project2/src/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Building CXX object CMakeFiles/cloudfs.dir/cloud-lib/cloudapi_print.cc.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/cloudfs.dir/cloud-lib/cloudapi_print.cc.o -MF CMakeFiles/cloudfs.dir/cloud-lib/cloudapi_print.cc.o.d -o CMakeFiles/cloudfs.dir/cloud-lib/cloudapi_print.cc.o -c /home/student/cmu15746-project2/src/cloud-lib/cloudapi_print.cc
 
 CMakeFiles/cloudfs.dir/cloud-lib/cloudapi_print.cc.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/cloudfs.dir/cloud-lib/cloudapi_print.cc.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/student/src/cloud-lib/cloudapi_print.cc > CMakeFiles/cloudfs.dir/cloud-lib/cloudapi_print.cc.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/student/cmu15746-project2/src/cloud-lib/cloudapi_print.cc > CMakeFiles/cloudfs.dir/cloud-lib/cloudapi_print.cc.i
 
 CMakeFiles/cloudfs.dir/cloud-lib/cloudapi_print.cc.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/cloudfs.dir/cloud-lib/cloudapi_print.cc.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/student/src/cloud-lib/cloudapi_print.cc -o CMakeFiles/cloudfs.dir/cloud-lib/cloudapi_print.cc.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/student/cmu15746-project2/src/cloud-lib/cloudapi_print.cc -o CMakeFiles/cloudfs.dir/cloud-lib/cloudapi_print.cc.s
 
 CMakeFiles/cloudfs.dir/cloudfs/cloudfs.cc.o: CMakeFiles/cloudfs.dir/flags.make
 CMakeFiles/cloudfs.dir/cloudfs/cloudfs.cc.o: ../cloudfs/cloudfs.cc
 CMakeFiles/cloudfs.dir/cloudfs/cloudfs.cc.o: CMakeFiles/cloudfs.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/student/src/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/cloudfs.dir/cloudfs/cloudfs.cc.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/cloudfs.dir/cloudfs/cloudfs.cc.o -MF CMakeFiles/cloudfs.dir/cloudfs/cloudfs.cc.o.d -o CMakeFiles/cloudfs.dir/cloudfs/cloudfs.cc.o -c /home/student/src/cloudfs/cloudfs.cc
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/student/cmu15746-project2/src/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/cloudfs.dir/cloudfs/cloudfs.cc.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/cloudfs.dir/cloudfs/cloudfs.cc.o -MF CMakeFiles/cloudfs.dir/cloudfs/cloudfs.cc.o.d -o CMakeFiles/cloudfs.dir/cloudfs/cloudfs.cc.o -c /home/student/cmu15746-project2/src/cloudfs/cloudfs.cc
 
 CMakeFiles/cloudfs.dir/cloudfs/cloudfs.cc.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/cloudfs.dir/cloudfs/cloudfs.cc.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/student/src/cloudfs/cloudfs.cc > CMakeFiles/cloudfs.dir/cloudfs/cloudfs.cc.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/student/cmu15746-project2/src/cloudfs/cloudfs.cc > CMakeFiles/cloudfs.dir/cloudfs/cloudfs.cc.i
 
 CMakeFiles/cloudfs.dir/cloudfs/cloudfs.cc.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/cloudfs.dir/cloudfs/cloudfs.cc.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/student/src/cloudfs/cloudfs.cc -o CMakeFiles/cloudfs.dir/cloudfs/cloudfs.cc.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/student/cmu15746-project2/src/cloudfs/cloudfs.cc -o CMakeFiles/cloudfs.dir/cloudfs/cloudfs.cc.s
 
 CMakeFiles/cloudfs.dir/cloudfs/main.cc.o: CMakeFiles/cloudfs.dir/flags.make
 CMakeFiles/cloudfs.dir/cloudfs/main.cc.o: ../cloudfs/main.cc
 CMakeFiles/cloudfs.dir/cloudfs/main.cc.o: CMakeFiles/cloudfs.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/student/src/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/cloudfs.dir/cloudfs/main.cc.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/cloudfs.dir/cloudfs/main.cc.o -MF CMakeFiles/cloudfs.dir/cloudfs/main.cc.o.d -o CMakeFiles/cloudfs.dir/cloudfs/main.cc.o -c /home/student/src/cloudfs/main.cc
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/student/cmu15746-project2/src/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/cloudfs.dir/cloudfs/main.cc.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/cloudfs.dir/cloudfs/main.cc.o -MF CMakeFiles/cloudfs.dir/cloudfs/main.cc.o.d -o CMakeFiles/cloudfs.dir/cloudfs/main.cc.o -c /home/student/cmu15746-project2/src/cloudfs/main.cc
 
 CMakeFiles/cloudfs.dir/cloudfs/main.cc.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/cloudfs.dir/cloudfs/main.cc.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/student/src/cloudfs/main.cc > CMakeFiles/cloudfs.dir/cloudfs/main.cc.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/student/cmu15746-project2/src/cloudfs/main.cc > CMakeFiles/cloudfs.dir/cloudfs/main.cc.i
 
 CMakeFiles/cloudfs.dir/cloudfs/main.cc.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/cloudfs.dir/cloudfs/main.cc.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/student/src/cloudfs/main.cc -o CMakeFiles/cloudfs.dir/cloudfs/main.cc.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/student/cmu15746-project2/src/cloudfs/main.cc -o CMakeFiles/cloudfs.dir/cloudfs/main.cc.s
 
 CMakeFiles/cloudfs.dir/cloudfs/util.cc.o: CMakeFiles/cloudfs.dir/flags.make
 CMakeFiles/cloudfs.dir/cloudfs/util.cc.o: ../cloudfs/util.cc
 CMakeFiles/cloudfs.dir/cloudfs/util.cc.o: CMakeFiles/cloudfs.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/student/src/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/cloudfs.dir/cloudfs/util.cc.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/cloudfs.dir/cloudfs/util.cc.o -MF CMakeFiles/cloudfs.dir/cloudfs/util.cc.o.d -o CMakeFiles/cloudfs.dir/cloudfs/util.cc.o -c /home/student/src/cloudfs/util.cc
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/student/cmu15746-project2/src/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/cloudfs.dir/cloudfs/util.cc.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/cloudfs.dir/cloudfs/util.cc.o -MF CMakeFiles/cloudfs.dir/cloudfs/util.cc.o.d -o CMakeFiles/cloudfs.dir/cloudfs/util.cc.o -c /home/student/cmu15746-project2/src/cloudfs/util.cc
 
 CMakeFiles/cloudfs.dir/cloudfs/util.cc.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/cloudfs.dir/cloudfs/util.cc.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/student/src/cloudfs/util.cc > CMakeFiles/cloudfs.dir/cloudfs/util.cc.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/student/cmu15746-project2/src/cloudfs/util.cc > CMakeFiles/cloudfs.dir/cloudfs/util.cc.i
 
 CMakeFiles/cloudfs.dir/cloudfs/util.cc.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/cloudfs.dir/cloudfs/util.cc.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/student/src/cloudfs/util.cc -o CMakeFiles/cloudfs.dir/cloudfs/util.cc.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/student/cmu15746-project2/src/cloudfs/util.cc -o CMakeFiles/cloudfs.dir/cloudfs/util.cc.s
 
 CMakeFiles/cloudfs.dir/cloudfs/metadata.cc.o: CMakeFiles/cloudfs.dir/flags.make
 CMakeFiles/cloudfs.dir/cloudfs/metadata.cc.o: ../cloudfs/metadata.cc
 CMakeFiles/cloudfs.dir/cloudfs/metadata.cc.o: CMakeFiles/cloudfs.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/student/src/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/cloudfs.dir/cloudfs/metadata.cc.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/cloudfs.dir/cloudfs/metadata.cc.o -MF CMakeFiles/cloudfs.dir/cloudfs/metadata.cc.o.d -o CMakeFiles/cloudfs.dir/cloudfs/metadata.cc.o -c /home/student/src/cloudfs/metadata.cc
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/student/cmu15746-project2/src/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/cloudfs.dir/cloudfs/metadata.cc.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/cloudfs.dir/cloudfs/metadata.cc.o -MF CMakeFiles/cloudfs.dir/cloudfs/metadata.cc.o.d -o CMakeFiles/cloudfs.dir/cloudfs/metadata.cc.o -c /home/student/cmu15746-project2/src/cloudfs/metadata.cc
 
 CMakeFiles/cloudfs.dir/cloudfs/metadata.cc.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/cloudfs.dir/cloudfs/metadata.cc.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/student/src/cloudfs/metadata.cc > CMakeFiles/cloudfs.dir/cloudfs/metadata.cc.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/student/cmu15746-project2/src/cloudfs/metadata.cc > CMakeFiles/cloudfs.dir/cloudfs/metadata.cc.i
 
 CMakeFiles/cloudfs.dir/cloudfs/metadata.cc.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/cloudfs.dir/cloudfs/metadata.cc.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/student/src/cloudfs/metadata.cc -o CMakeFiles/cloudfs.dir/cloudfs/metadata.cc.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/student/cmu15746-project2/src/cloudfs/metadata.cc -o CMakeFiles/cloudfs.dir/cloudfs/metadata.cc.s
 
 CMakeFiles/cloudfs.dir/cloudfs/data.cc.o: CMakeFiles/cloudfs.dir/flags.make
 CMakeFiles/cloudfs.dir/cloudfs/data.cc.o: ../cloudfs/data.cc
 CMakeFiles/cloudfs.dir/cloudfs/data.cc.o: CMakeFiles/cloudfs.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/student/src/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/cloudfs.dir/cloudfs/data.cc.o"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/cloudfs.dir/cloudfs/data.cc.o -MF CMakeFiles/cloudfs.dir/cloudfs/data.cc.o.d -o CMakeFiles/cloudfs.dir/cloudfs/data.cc.o -c /home/student/src/cloudfs/data.cc
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/student/cmu15746-project2/src/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/cloudfs.dir/cloudfs/data.cc.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/cloudfs.dir/cloudfs/data.cc.o -MF CMakeFiles/cloudfs.dir/cloudfs/data.cc.o.d -o CMakeFiles/cloudfs.dir/cloudfs/data.cc.o -c /home/student/cmu15746-project2/src/cloudfs/data.cc
 
 CMakeFiles/cloudfs.dir/cloudfs/data.cc.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/cloudfs.dir/cloudfs/data.cc.i"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/student/src/cloudfs/data.cc > CMakeFiles/cloudfs.dir/cloudfs/data.cc.i
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/student/cmu15746-project2/src/cloudfs/data.cc > CMakeFiles/cloudfs.dir/cloudfs/data.cc.i
 
 CMakeFiles/cloudfs.dir/cloudfs/data.cc.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/cloudfs.dir/cloudfs/data.cc.s"
-	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/student/src/cloudfs/data.cc -o CMakeFiles/cloudfs.dir/cloudfs/data.cc.s
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/student/cmu15746-project2/src/cloudfs/data.cc -o CMakeFiles/cloudfs.dir/cloudfs/data.cc.s
 
 # Object files for target cloudfs
 cloudfs_OBJECTS = \
@@ -195,7 +195,7 @@ cloudfs: dedup-lib/libdedup.a
 cloudfs: /usr/lib/x86_64-linux-gnu/libssl.so
 cloudfs: /usr/lib/x86_64-linux-gnu/libcrypto.so
 cloudfs: CMakeFiles/cloudfs.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/student/src/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Linking CXX executable cloudfs"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/student/cmu15746-project2/src/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Linking CXX executable cloudfs"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/cloudfs.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -207,6 +207,6 @@ CMakeFiles/cloudfs.dir/clean:
 .PHONY : CMakeFiles/cloudfs.dir/clean
 
 CMakeFiles/cloudfs.dir/depend:
-	cd /home/student/src/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/student/src /home/student/src /home/student/src/build /home/student/src/build /home/student/src/build/CMakeFiles/cloudfs.dir/DependInfo.cmake --color=$(COLOR)
+	cd /home/student/cmu15746-project2/src/build && $(CMAKE_COMMAND) -E cmake_depends "Unix Makefiles" /home/student/cmu15746-project2/src /home/student/cmu15746-project2/src /home/student/cmu15746-project2/src/build /home/student/cmu15746-project2/src/build /home/student/cmu15746-project2/src/build/CMakeFiles/cloudfs.dir/DependInfo.cmake --color=$(COLOR)
 .PHONY : CMakeFiles/cloudfs.dir/depend
 

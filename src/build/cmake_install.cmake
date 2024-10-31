@@ -1,4 +1,4 @@
-# Install script for directory: /home/student/src
+# Install script for directory: /home/student/cmu15746-project2/src
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -44,9 +44,9 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("/home/student/src/build/archive-lib/cmake_install.cmake")
-  include("/home/student/src/build/dedup-lib/cmake_install.cmake")
-  include("/home/student/src/build/snapshot/cmake_install.cmake")
+  include("/home/student/cmu15746-project2/src/build/archive-lib/cmake_install.cmake")
+  include("/home/student/cmu15746-project2/src/build/dedup-lib/cmake_install.cmake")
+  include("/home/student/cmu15746-project2/src/build/snapshot/cmake_install.cmake")
 
 endif()
 
@@ -58,5 +58,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/student/src/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/student/cmu15746-project2/src/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

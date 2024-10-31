@@ -64,10 +64,10 @@ std::vector<std::string> normalize_path(const std::vector<std::string>& path_seg
   return normalized_path;
 }
 
-std::string get_proxy_path(const std::string& ssd_path) {
-  auto filename_start = ssd_path.find_last_of("/") + 1;
-  auto path_head = ssd_path.substr(0, filename_start);
-  return path_head + "." + ssd_path.substr(filename_start);
+std::string get_metadata_path(const std::string& path) {
+  auto filename_start = path.find_last_of("/") + 1;
+  auto path_head = path.substr(0, filename_start);
+  return path_head + "." + path.substr(filename_start);
 }
 
 std::string generate_object_key(const std::string& path) {
