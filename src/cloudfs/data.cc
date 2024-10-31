@@ -9,7 +9,7 @@ int get_buffer(const char *buffer, int bufferLength) {
 }
 
 void download_data(const std::string& path, const std::string& bucket_name, const std::string& object_key) {
-    outfile = fopen(path.c_str(), "wb");
+    outfile = fopen(path.c_str(), "r+");
     // skip the first METADATA_SIZE bytes
     fseek(outfile, METADATA_SIZE, SEEK_SET);
     cloud_get_object(bucket_name.c_str(), object_key.c_str(), get_buffer);
@@ -22,8 +22,15 @@ int put_buffer(char *buffer, int bufferLength) {
     return fread(buffer, 1, bufferLength, infile);
 }
 
+void data_service_init(const std::string& hostname, const std::string& bucket_name) {
+    cloud_init(hostname.c_str());
+    cloud_create_bucket(bucket_name.c_str());
+    cloud_print_error();
+}
+
+
 void upload_data(const std::string& path, const std::string& bucket_name, const std::string& object_key, size_t size) {
-    infile = fopen(path.c_str(), "rb");
+    infile = fopen(path.c_str(), "r");
     if(infile == NULL)
     {
         debug_print("File not found.");
@@ -39,4 +46,8 @@ void upload_data(const std::string& path, const std::string& bucket_name, const 
 void delete_data(const std::string& bucket_name, const std::string& object_key) {
     cloud_delete_object(bucket_name.c_str(), object_key.c_str());
     cloud_print_error();
+}
+
+void data_service_destroy() {
+    cloud_destroy();
 }

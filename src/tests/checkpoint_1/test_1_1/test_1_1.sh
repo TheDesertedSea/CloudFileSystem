@@ -57,6 +57,8 @@ echo -ne "Basic file content test(md5sum)   "
 (cd $REFERENCE_DIR && find .  \( ! -regex '.*/\..*' \) -type f -exec md5sum \{\} \; | sort -k2 > $LOG_DIR/md5sum.out.master)
 (cd $FUSE_MNT && find .  \( ! -regex '.*/\..*' \) -type f -exec md5sum \{\} \; | sort -k2 > $LOG_DIR/md5sum.out)
 
+
+
 diff $LOG_DIR/md5sum.out.master $LOG_DIR/md5sum.out
 print_result $?
 
