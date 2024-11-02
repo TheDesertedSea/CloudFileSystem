@@ -12,7 +12,6 @@ int get_metadata(const std::string& path, Metadata& metadata) {
         return -1;
     }
 
-
     FILE* file = fopen(path.c_str(), "r");
     if (file == NULL) {
         return -1;

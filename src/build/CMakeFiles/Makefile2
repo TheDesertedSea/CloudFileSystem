@@ -137,9 +137,9 @@ snapshot/clean: snapshot/CMakeFiles/snapshot.dir/clean
 # Target rules for target CMakeFiles/cloudfs.dir
 
 # All Build rule for target.
-CMakeFiles/cloudfs.dir/all: dedup-lib/CMakeFiles/dedup.dir/all
 CMakeFiles/cloudfs.dir/all: archive-lib/CMakeFiles/archive-util.dir/all
 CMakeFiles/cloudfs.dir/all: snapshot/CMakeFiles/snapshot-api.dir/all
+CMakeFiles/cloudfs.dir/all: dedup-lib/CMakeFiles/dedup.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/cloudfs.dir/build.make CMakeFiles/cloudfs.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/cloudfs.dir/build.make CMakeFiles/cloudfs.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --progress-dir=/home/student/cmu15746-project2/src/build/CMakeFiles --progress-num=5,6,7,8,9,10,11,12 "Built target cloudfs"

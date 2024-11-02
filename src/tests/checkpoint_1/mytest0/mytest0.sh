@@ -39,15 +39,16 @@ reinit_env
 # students should have all their metadata in hidden files/dirs
 echo ""
 echo "Executing mytest0"
-(cd $FUSE_MNT && touch file1)
-(cd $FUSE_MNT && echo "Hello World" > file1)
-(cd $FUSE_MNT && ln -s /home/student/mnt/fuse/file1 file2)
+(cd $FUSE_MNT && touch test_file)
+(cd $FUSE_MNT && echo "Hello World" > test_file)
+(cd $FUSE_MNT && ln -s /home/student/mnt/fuse/test_file test_file_tmp)
 (cd $FUSE_MNT && ls -al)
-(cd $FUSE_MNT && cat file2)
-(cd $FUSE_MNT && chmod 777 file1)
+(cd $FUSE_MNT && cat test_file_tmp)
+(cd $FUSE_MNT && chmod 444 test_file)
+(cd $FUSE_MNT && cat test_file_tmp)
 (cd $FUSE_MNT && ls -al)
-(cd $FUSE_MNT && setfattr -n user.test -v "test" file1)
-(cd $FUSE_MNT && getfattr -n user.test file1)
+(cd $FUSE_MNT && setfattr -n user.test -v "test" test_file)
+(cd $FUSE_MNT && getfattr -n user.test test_file)
 
 #----
 #destructive test : always do this test at the end!!
