@@ -105,12 +105,11 @@ int cloudfs_getxattr(const char* path, const char* attr_name, char* buf, size_t 
   auto ssd_path = state_.ssd_path + std::string(path);
   cloudfs_info("getxattr: " + ssd_path + " attr_name = " + std::string(attr_name));
   
-  auto ret = getxattr(ssd_path.c_str(), attr_name, buf, size);
+  auto ret = lgetxattr(ssd_path.c_str(), attr_name, buf, size);
   if(ret < 0) {
     return cloudfs_error("getxattr: failed");
   }
 
-  cloudfs_info("getxattr: value = " + std::string(buf));
   return ret;
 }
 
@@ -118,10 +117,11 @@ int cloudfs_setxattr(const char* path, const char* attr_name, const char* attr_v
   auto ssd_path = state_.ssd_path + std::string(path);
   cloudfs_info("setxattr: " + ssd_path + " attr_name = " + std::string(attr_name) + " attr_value = " + std::string(attr_value));
   
-  auto ret = setxattr(ssd_path.c_str(), attr_name, attr_value, size, flags);
+  auto ret = lsetxattr(ssd_path.c_str(), attr_name, attr_value, size, flags);
   if(ret < 0) {
     return cloudfs_error("setxattr: failed");
   }
+
   return 0;
 }
 

@@ -42,8 +42,12 @@ echo "Executing mytest0"
 (cd $FUSE_MNT && touch file1)
 (cd $FUSE_MNT && echo "Hello World" > file1)
 (cd $FUSE_MNT && ln -s /home/student/mnt/fuse/file1 file2)
-(cd $FUSE_MNT && ls)
+(cd $FUSE_MNT && ls -al)
 (cd $FUSE_MNT && cat file2)
+(cd $FUSE_MNT && chmod 777 file1)
+(cd $FUSE_MNT && ls -al)
+(cd $FUSE_MNT && setfattr -n user.test -v "test" file1)
+(cd $FUSE_MNT && getfattr -n user.test file1)
 
 #----
 #destructive test : always do this test at the end!!

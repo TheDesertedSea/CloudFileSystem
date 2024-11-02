@@ -54,7 +54,6 @@ void upload_data(const std::string& path, const std::string& bucket_name, const 
         return;
     }
 
-
     infile = fopen(path.c_str(), "r");
     if(infile == NULL)
     {
