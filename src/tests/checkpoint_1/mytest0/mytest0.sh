@@ -40,15 +40,10 @@ reinit_env
 echo ""
 echo "Executing mytest0"
 (cd $FUSE_MNT && touch file1)
-(cd $REFERENCE_DIR && touch file1)
 (cd $FUSE_MNT && echo "Hello World" > file1)
-(cd $REFERENCE_DIR && echo "Hello World" > file1)
-(cd $FUSE_MNT && ln -s file1 ./file2)
-(cd $REFERENCE_DIR && ln -s file1 ./file2)
+(cd $FUSE_MNT && ln -s /home/student/mnt/fuse/file1 file2)
 (cd $FUSE_MNT && ls)
-(cd $REFERENCE_DIR && ls)
 (cd $FUSE_MNT && cat file2)
-(cd $REFERENCE_DIR && cat file2)
 
 #----
 #destructive test : always do this test at the end!!

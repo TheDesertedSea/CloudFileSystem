@@ -1,10 +1,14 @@
 #include "util.h"
+
 #include <cstdio>
+#include <unistd.h>
+#include <sstream>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #define PATH_MAX 4096
 
-#include <unistd.h>
-#include <sstream>
+
 
 void debug_print(const std::string& msg, FILE* file) {
     fprintf(file, "%s\n", msg.c_str());
@@ -86,4 +90,17 @@ std::string get_temp_file_path(const std::string& path) {
 
 std::string get_ssd_path(const std::string& proxy_path) {
   return proxy_path.substr(0, proxy_path.length() - 1);
+}
+
+int save_time(const std::string& path, timespec tv[]) {
+    struct stat stat_buf;
+    lstat(path.c_str(), &stat_buf);
+    tv[0] = stat_buf.st_atim;
+    tv[1] = stat_buf.st_mtim;
+    return 0;
+}
+
+int restore_time(const std::string& path, const timespec tv[]) {
+    utimensat(AT_FDCWD, path.c_str(), tv, 0);
+    return 0;
 }

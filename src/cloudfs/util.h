@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <time.h>
 
 void debug_print(const std::string& msg, FILE* file = stdout);
 
@@ -21,3 +22,7 @@ std::string generate_object_key(const std::string& path);
 std::string get_temp_file_path(const std::string& path);
 
 std::string get_ssd_path(const std::string& proxy_path);
+
+int save_time(const std::string& path, timespec tv[]);
+
+int restore_time(const std::string& path, const timespec tv[]);

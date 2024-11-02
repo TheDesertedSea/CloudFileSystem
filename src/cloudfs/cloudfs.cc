@@ -71,7 +71,7 @@ int cloudfs_getattr(const char *path, struct stat *statbuf)
   cloudfs_info("getattr: " + ssd_path);
 
   struct stat st;
-  auto ret = lstat(ssd_path.c_str(), &st);
+  auto ret = lstat(ssd_path.c_str(), &st); // use lstat to not follow the symbolic link
   if(ret != 0) {
     return cloudfs_error("getattr: ssd failed");
   }
@@ -189,15 +189,15 @@ int cloudfs_open(const char *path, struct fuse_file_info *fi)
   }
   if(metadata.is_on_cloud) {
     cloudfs_info("open: download from cloud");
+
     download_data(ssd_path, bukcet_name, generate_object_key(ssd_path));
+
+    // check the size
     struct stat st;
     lstat(ssd_path.c_str(), &st);
     st.st_size -= METADATA_SIZE;
-    cloudfs_info("open: size = " + std::to_string(st.st_size));
-    set_metadata(ssd_path, metadata);
-    lstat(ssd_path.c_str(), &st);
-    st.st_size -= METADATA_SIZE;
-    cloudfs_info("open: size = " + std::to_string(st.st_size));
+    cloudfs_info("open: got size = " + std::to_string(st.st_size));
+    cloudfs_info("open: expect size = " + std::to_string(metadata.size));
   }
   
   return 0;
@@ -243,11 +243,6 @@ int cloud_release(const char *path, struct fuse_file_info *fi) {
     // upload the file to cloud
     cloudfs_info("release: upload to cloud");
     upload_data(ssd_path, bukcet_name, generate_object_key(ssd_path), size);
-    // clear the file
-    auto ret = truncate(ssd_path.c_str(), METADATA_SIZE);
-    if(ret < 0) {
-      return cloudfs_error("release: truncate failed");
-    }
     Metadata metadata;
     metadata.size = size;
     metadata.is_on_cloud = true;

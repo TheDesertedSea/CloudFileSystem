@@ -127,4 +127,9 @@ CMakeFiles/cloudfs.dir/cloudfs/metadata.cc.o: \
  /usr/include/c++/11/bits/charconv.h \
  /usr/include/c++/11/bits/functional_hash.h \
  /usr/include/c++/11/bits/hash_bytes.h \
- /usr/include/c++/11/bits/basic_string.tcc
+ /usr/include/c++/11/bits/basic_string.tcc \
+ /home/student/cmu15746-project2/src/cloudfs/util.h \
+ /usr/include/c++/11/vector /usr/include/c++/11/bits/stl_uninitialized.h \
+ /usr/include/c++/11/bits/stl_vector.h \
+ /usr/include/c++/11/bits/stl_bvector.h \
+ /usr/include/c++/11/bits/vector.tcc
