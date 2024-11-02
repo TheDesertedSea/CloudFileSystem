@@ -55,7 +55,7 @@ static int cloudfs_error(const std::string& error_str)
 {
     auto retval = -errno;
 
-    debug_print("[CloudFS Error] " +  error_str, log_file);
+    debug_print("[CloudFS Error] " +  error_str + ", errno = " + std::to_string(errno), log_file);
 
     /* FUSE always returns -errno to caller (yes, it is negative errno!) */
     return retval;
@@ -71,7 +71,7 @@ int cloudfs_getattr(const char *path, struct stat *statbuf)
   cloudfs_info("getattr: " + ssd_path);
 
   struct stat st;
-  auto ret = stat(ssd_path.c_str(), &st);
+  auto ret = lstat(ssd_path.c_str(), &st);
   if(ret != 0) {
     return cloudfs_error("getattr: ssd failed");
   }
@@ -92,23 +92,31 @@ int cloudfs_getattr(const char *path, struct stat *statbuf)
   }
 
   memcpy(statbuf, &st, sizeof(struct stat));
+
+  cloudfs_info("getattr: size = " + std::to_string(statbuf->st_size));
+  cloudfs_info("getattr: mode = " + std::to_string(statbuf->st_mode));
+  cloudfs_info("getattr: atime = " + std::to_string(statbuf->st_atime));
+  cloudfs_info("getattr: mtime = " + std::to_string(statbuf->st_mtime));
+
   return 0;
 }
 
 int cloudfs_getxattr(const char* path, const char* attr_name, char* buf, size_t size) {
   auto ssd_path = state_.ssd_path + std::string(path);
-  cloudfs_info("getxattr: " + ssd_path);
+  cloudfs_info("getxattr: " + ssd_path + " attr_name = " + std::string(attr_name));
   
   auto ret = getxattr(ssd_path.c_str(), attr_name, buf, size);
   if(ret < 0) {
     return cloudfs_error("getxattr: failed");
   }
+
+  cloudfs_info("getxattr: value = " + std::string(buf));
   return ret;
 }
 
 int cloudfs_setxattr(const char* path, const char* attr_name, const char* attr_value, size_t size, int flags) {
   auto ssd_path = state_.ssd_path + std::string(path);
-  cloudfs_info("setxattr: " + ssd_path);
+  cloudfs_info("setxattr: " + ssd_path + " attr_name = " + std::string(attr_name) + " attr_value = " + std::string(attr_value));
   
   auto ret = setxattr(ssd_path.c_str(), attr_name, attr_value, size, flags);
   if(ret < 0) {
@@ -120,7 +128,7 @@ int cloudfs_setxattr(const char* path, const char* attr_name, const char* attr_v
 int cloudfs_mkdir(const char *path, mode_t mode)
 {
   auto ssd_path = state_.ssd_path + std::string(path);
-  cloudfs_info("mkdir: " + ssd_path);
+  cloudfs_info("mkdir: " + ssd_path + " mode = " + std::to_string(mode));
 
   auto ret = mkdir(ssd_path.c_str(), mode);
   if(ret != 0) {
@@ -133,7 +141,7 @@ int cloudfs_mkdir(const char *path, mode_t mode)
 int cloudfs_mknod(const char *path, mode_t mode, dev_t dev)
 {
   auto ssd_path = state_.ssd_path + std::string(path);
-  cloudfs_info("mknod: " + ssd_path);
+  cloudfs_info("mknod: " + ssd_path + " mode = " + std::to_string(mode) + " dev = " + std::to_string(dev));
 
   auto ret = mknod(ssd_path.c_str(), mode, dev);
   if(ret != 0) {
@@ -146,7 +154,7 @@ int cloudfs_mknod(const char *path, mode_t mode, dev_t dev)
 int cloudfs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 {
   auto ssd_path = state_.ssd_path + std::string(path);
-  cloudfs_info("create: " + ssd_path);
+  cloudfs_info("create: " + ssd_path + " mode = " + std::to_string(mode));
 
   auto fd = open(ssd_path.c_str(), fi->flags | O_CREAT, mode);
   if(fd < 0) {
@@ -303,7 +311,7 @@ int cloud_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t off
 }
 
 int cloud_access(const char *path, int mask) {
-  cloudfs_info("access: " + std::string(path));
+  cloudfs_info("access: " + std::string(path) + " mask = " + std::to_string(mask));
 
   auto ssd_path = state_.ssd_path + std::string(path);
   auto ret = access(ssd_path.c_str(), mask);
@@ -315,9 +323,9 @@ int cloud_access(const char *path, int mask) {
 
 int cloud_utimens(const char *path, const struct timespec tv[2]) {
   auto ssd_path = state_.ssd_path + std::string(path);
-  cloudfs_info("utimens: " + ssd_path);
+  cloudfs_info("utimens: " + ssd_path + " atime = " + std::to_string(tv[0].tv_sec) + " mtime = " + std::to_string(tv[1].tv_sec));
 
-  auto ret = utimensat(AT_FDCWD, ssd_path.c_str(), tv, 0);
+  auto ret = utimensat(AT_FDCWD, ssd_path.c_str(), tv, AT_SYMLINK_NOFOLLOW);
   if(ret < 0) {
     return cloudfs_error("utimens: ssd failed");
   }
@@ -326,7 +334,7 @@ int cloud_utimens(const char *path, const struct timespec tv[2]) {
 
 int cloud_chmod(const char *path, mode_t mode) {
   auto ssd_path = state_.ssd_path + std::string(path);
-  cloudfs_info("chmod: " + ssd_path);
+  cloudfs_info("chmod: " + ssd_path + " mode = " + std::to_string(mode));
 
   auto ret = chmod(ssd_path.c_str(), mode);
   if(ret < 0) {
@@ -347,15 +355,15 @@ int cloud_link(const char* path, const char* newpath) {
   return 0;
 }
 
-int cloud_symlink(const char* path, const char* newpath) {
-  auto ssd_path = state_.ssd_path + std::string(path);
-  auto new_ssd_path = state_.ssd_path + std::string(newpath);
-  cloudfs_info("symlink: " + ssd_path + " -> " + new_ssd_path);
+int cloud_symlink(const char* target, const char* linkpath) {
+  auto ssd_linkpath = state_.ssd_path + std::string(linkpath);
+  cloudfs_info("symlink: " + std::string(target) + " -> " + ssd_linkpath);
 
-  auto ret = symlink(ssd_path.c_str(), new_ssd_path.c_str());
+  auto ret = symlink(target, ssd_linkpath.c_str());
   if(ret < 0) {
     return cloudfs_error("symlink: ssd failed");
   }
+
   return 0;
 }
 
@@ -367,6 +375,7 @@ int cloud_readlink(const char* path, char* buf, size_t size) {
   if(ret < 0) {
     return cloudfs_error("readlink: ssd failed");
   }
+  cloudfs_info("readlink: " + std::string(buf));
   return 0;
 }
 
@@ -376,7 +385,7 @@ int cloud_unlink(const char* path) {
 
   struct stat stat_buf;
   lstat(ssd_path.c_str(), &stat_buf);
-  if(stat_buf.st_nlink == 1) {
+  if(S_ISREG(stat_buf.st_mode) && stat_buf.st_nlink == 1) {
     // This is the last link to the file
     // delete the file on cloud if it is on cloud
     Metadata metadata;
