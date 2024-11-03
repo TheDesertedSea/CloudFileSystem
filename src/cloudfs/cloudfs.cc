@@ -1,7 +1,4 @@
-#include <cstdio>
 #include <string>
-#include <vector>
-#include <fstream>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -30,7 +27,7 @@
 
 static struct cloudfs_state state_;
 
-static std::string bukcet_name = "cloudfs";
+static const char* bukcet_name = "cloudfs";
 
 static const std::string log_path = "/tmp/cloudfs.log";
 
@@ -77,23 +74,26 @@ int cloudfs_getattr(const char *path, struct stat *statbuf)
   }
 
   if(S_ISREG(st.st_mode)) {
-    Metadata metadata;
-    ret = get_metadata(ssd_path, metadata);
+    // regular file
+    auto data_path = get_data_path(ssd_path);
+    bool on_cloud;
+    ret = is_on_cloud(ssd_path, on_cloud);
     if(ret != 0) {
-      return cloudfs_error("getattr: get_metadata failed");
+      return cloudfs_error("getattr: is_on_cloud failed");
     }
-    if(metadata.is_on_cloud) {
-      // the file is on cloud
-      st.st_size = metadata.size;
-    } else {
-      // the file is on ssd
-      st.st_size -= METADATA_SIZE;
+    if(on_cloud) {
+      auto data_path = get_data_path(ssd_path);
+      // the file is on cloud, get the real size
+      ret = get_size(ssd_path, st.st_size);
+      if(ret != 0) {
+        return cloudfs_error("getattr: get_size failed");
+      }
     }
   }
 
   memcpy(statbuf, &st, sizeof(struct stat));
 
-  // cloudfs_info("getattr: size = " + std::to_string(statbuf->st_size));
+  cloudfs_info("getattr: size = " + std::to_string(statbuf->st_size));
   cloudfs_info("getattr: mode = " + std::to_string(statbuf->st_mode));
   // cloudfs_info("getattr: atime = " + std::to_string(statbuf->st_atime));
   // cloudfs_info("getattr: mtime = " + std::to_string(statbuf->st_mtime));
@@ -103,27 +103,27 @@ int cloudfs_getattr(const char *path, struct stat *statbuf)
 
 int cloudfs_getxattr(const char* path, const char* attr_name, char* buf, size_t size) {
   auto ssd_path = state_.ssd_path + std::string(path);
-  // cloudfs_info("getxattr: " + ssd_path + " attr_name = " + std::string(attr_name));
+  cloudfs_info("getxattr: " + ssd_path + " attr_name = " + std::string(attr_name));
   
   auto ret = lgetxattr(ssd_path.c_str(), attr_name, buf, size);
   if(ret < 0) {
     return cloudfs_error("getxattr: failed");
   }
 
-  // cloudfs_info("getxattr: success");
+  cloudfs_info("getxattr: success");
   return ret;
 }
 
 int cloudfs_setxattr(const char* path, const char* attr_name, const char* attr_value, size_t size, int flags) {
   auto ssd_path = state_.ssd_path + std::string(path);
-  // cloudfs_info("setxattr: " + ssd_path + " attr_name = " + std::string(attr_name) + " attr_value = " + std::string(attr_value));
+  cloudfs_info("setxattr: " + ssd_path + " attr_name = " + std::string(attr_name) + " attr_value = " + std::string(attr_value));
   
   auto ret = lsetxattr(ssd_path.c_str(), attr_name, attr_value, size, flags);
   if(ret < 0) {
     return cloudfs_error("setxattr: failed");
   }
 
-  // cloudfs_info("setxattr: success");
+  cloudfs_info("setxattr: success");
   return 0;
 }
 
@@ -165,13 +165,29 @@ int cloudfs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
     return cloudfs_error("create: ssd failed");
   }
   fi->fh = fd;
-  Metadata metadata;
-  metadata.size = 0;
-  metadata.is_on_cloud = false;
-  auto ret = set_metadata(ssd_path, metadata);
-  if(ret != 0) {
-    return cloudfs_error("create: set_metadata failed");
+
+
+  auto data_path = get_data_path(ssd_path);
+  // cloudfs_info("create: data_path = " + data_path);
+  fd = open(data_path.c_str(), O_WRONLY | O_CREAT, 0777);
+  if(fd < 0) {
+    return cloudfs_error("create: create data file failed");
   }
+  close(fd);
+  
+  auto ret = set_size(ssd_path, 0);
+  if(ret != 0) {
+    return cloudfs_error("create: set_size failed");
+  }
+  ret = set_on_cloud(ssd_path, false);
+  if(ret != 0) {
+    return cloudfs_error("create: set_on_cloud failed");
+  }
+  ret = set_dirty(ssd_path, false);
+  if(ret != 0) {
+    return cloudfs_error("create: set_dirty failed");
+  }
+
 
   cloudfs_info("create: success");
   return 0;
@@ -182,29 +198,32 @@ int cloudfs_open(const char *path, struct fuse_file_info *fi)
   auto ssd_path = state_.ssd_path + std::string(path);
   cloudfs_info("open: " + ssd_path + " flags = " + std::to_string(fi->flags));
   auto fd = open(ssd_path.c_str(), fi->flags);
-
   if(fd < 0) {
     return cloudfs_error("open: ssd failed");
   }
   fi->fh = fd;
 
-  Metadata metadata;
-  auto ret = get_metadata(ssd_path, metadata);
+  auto data_path = get_data_path(ssd_path);
+  bool on_cloud;
+  auto ret = is_on_cloud(ssd_path, on_cloud);
   if(ret != 0) {
-    return cloudfs_error("open: get_metadata failed");
+    return cloudfs_error("open: is_on_cloud failed");
   }
-  if(metadata.is_on_cloud) {
-    // cloudfs_info("open: download from cloud");
-
-    download_data(ssd_path, bukcet_name, generate_object_key(ssd_path));
-
-    // check the size
-    struct stat st;
-    lstat(ssd_path.c_str(), &st);
-    st.st_size -= METADATA_SIZE;
-    cloudfs_info("open: got size = " + std::to_string(st.st_size));
-    cloudfs_info("open: expect size = " + std::to_string(metadata.size));
+  if(on_cloud) {
+    cloudfs_info("open: download from cloud");
+    download_data(data_path, bukcet_name, generate_object_key(ssd_path));
+    close(fd); // if the file is on cloud, access actually goes to the data file
+    fd = open(data_path.c_str(), fi->flags);
+    if(fd < 0) {
+      return cloudfs_error("open: download failed");
+    }
+    fi->fh = fd;
+    cloudfs_info("open: download success");
   }
+  // ret = set_dirty(ssd_path, false);
+  // if(ret != 0) {
+  //   return cloudfs_error("open: set_dirty failed");
+  // }
   
   cloudfs_info("open: success");
   return 0;
@@ -214,7 +233,7 @@ int cloudfs_read(const char *path, char *buf, size_t count, off_t offset, struct
 {
   // cloudfs_info("read: " + std::string(path) + " count = " + std::to_string(count) + " offset = " + std::to_string(offset));
   auto fd = fi->fh;
-  auto ret = pread(fd, buf, count, offset + METADATA_SIZE);
+  auto ret = pread(fd, buf, count, offset);
   if(ret < 0) {
     return cloudfs_error("read: ssd failed");
   }
@@ -226,62 +245,104 @@ int cloudfs_read(const char *path, char *buf, size_t count, off_t offset, struct
 int cloud_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
   // cloudfs_info("write: " + std::string(path) + " size = " + std::to_string(size) + " offset = " + std::to_string(offset));
   auto fd = fi->fh;
-  auto ret = pwrite(fd, buf, size, offset + METADATA_SIZE);
-  if(ret < 0) {
+  auto written = pwrite(fd, buf, size, offset);
+  if(written < 0) {
     return cloudfs_error("write: ssd failed");
   }
 
+  auto ret = set_dirty(state_.ssd_path + std::string(path), true);
+  if(ret != 0) {
+    return cloudfs_error("write: set_dirty failed");
+  }
+
   // cloudfs_info("write: success");
-  return ret;
+  return written;
 }
 
 int cloud_release(const char *path, struct fuse_file_info *fi) {
-  // cloudfs_info("release: " + std::string(path));
+  cloudfs_info("release: " + std::string(path));
 
   auto fd = fi->fh;
   auto ret = close(fd);
   if(ret < 0) {
-    return cloudfs_error("release: ssd failed");
+    // return cloudfs_error("release: ssd failed");
   }
 
   auto ssd_path = state_.ssd_path + std::string(path);
-  struct stat stat_buf;
-  lstat(ssd_path.c_str(), &stat_buf);
-  auto size = stat_buf.st_size - METADATA_SIZE;
-  // cloudfs_info("release: size = " + std::to_string(size));
-
-  if(size > (size_t)state_.threshold) {
-    // upload the file to cloud
-    // cloudfs_info("release: upload to cloud");
-    upload_data(ssd_path, bukcet_name, generate_object_key(ssd_path), size);
-    Metadata metadata;
-    metadata.size = size;
-    metadata.is_on_cloud = true;
-    ret = set_metadata(ssd_path, metadata);
-    if(ret != 0) {
-      return cloudfs_error("release: set_metadata failed");
-    }
-  } else {
-    // keep at ssd
-    // cloudfs_info("release: keep at ssd");
-    Metadata metadata;
-    auto ret = get_metadata(ssd_path, metadata);
-    if(ret != 0) {
-      return cloudfs_error("release: get_metadata failed");
-    }
-    if(metadata.is_on_cloud) {
-      // delete the object on cloud
-      delete_data(bukcet_name, generate_object_key(ssd_path));
-    }
-    metadata.size = size;
-    metadata.is_on_cloud = false;
-    ret = set_metadata(ssd_path, metadata);
-    if(ret != 0) {
-      return cloudfs_error("release: set_metadata failed");
-    }
+  auto data_path = get_data_path(ssd_path);
+  bool on_cloud;
+  ret = is_on_cloud(ssd_path, on_cloud);
+  if(ret != 0) {
+    return cloudfs_error("release: is_on_cloud failed");
   }
 
-  cloudfs_info("release: success");
+  auto upload_path = ssd_path;
+  if(on_cloud) {
+    upload_path = data_path;
+  }
+
+  struct stat stat_buf;
+  lstat(upload_path.c_str(), &stat_buf);
+  auto size = stat_buf.st_size;
+  cloudfs_info("release: size = " + std::to_string(size));
+
+  bool dirty;
+  ret = is_dirty(ssd_path, dirty);
+  if(ret != 0) {
+    return cloudfs_error("release: is_dirty failed");
+  }
+
+  if(dirty) {
+    cloudfs_info("release: is dirty");
+    if(size > (off_t)state_.threshold) {
+      // upload the file to cloud
+      cloudfs_info("release: upload to cloud");
+      upload_data(upload_path, bukcet_name, generate_object_key(ssd_path), size);
+      clear_local(ssd_path);
+      ret = set_on_cloud(ssd_path, true);
+      if(ret != 0) {
+        return cloudfs_error("release: set_on_cloud failed");
+      }
+      ret = set_size(ssd_path, size);
+      if(ret != 0) {
+        return cloudfs_error("release: set_size failed");
+      }
+      cloudfs_info("release: upload success");
+    } else {
+      // keep at ssd
+      cloudfs_info("release: keep at ssd");
+      bool on_cloud;
+      ret = is_on_cloud(ssd_path, on_cloud);
+      if(ret != 0) {
+        return cloudfs_error("release: is_on_cloud failed");
+      }
+      if(on_cloud) {
+        // delete the object on cloud
+        cloudfs_info("release: delete from cloud");
+        delete_object(bukcet_name, generate_object_key(ssd_path));
+        ret = persist_data(upload_path, ssd_path);
+        if(ret != 0) {
+          return cloudfs_error("release: persist_data failed");
+        }
+      }
+      ret = set_on_cloud(ssd_path, false);
+      if(ret != 0) {
+        return cloudfs_error("release: set_on_cloud failed");
+      }
+      ret = set_size(ssd_path, size);
+      if(ret != 0) {
+        return cloudfs_error("release: set_size failed");
+      }
+      cloudfs_info("release: keep at ssd success");
+    }
+    ret = set_dirty(ssd_path, false);
+    if(ret != 0) {
+      return cloudfs_error("release: set_dirty failed");
+    }
+  }
+  clear_local(data_path);
+  
+  // cloudfs_info("release: success");
   return 0;
 }
 
@@ -312,6 +373,11 @@ int cloud_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t off
     if(strcmp(entry->d_name, "lost+found") == 0) {
       continue;
     }
+    auto name = std::string(entry->d_name);
+    // cloudfs_info("readdir: name = " + name);
+    if(is_data_path(name)) {
+      continue;
+    }
     if(filler(buf, entry->d_name, NULL, 0) != 0) {
       return cloudfs_error("readdir: filler failed");
     }
@@ -338,8 +404,8 @@ int cloud_utimens(const char *path, const struct timespec tv[2]) {
   auto ssd_path = state_.ssd_path + std::string(path);
   // cloudfs_info("utimens: " + ssd_path + " atime = " + std::to_string(tv[0].tv_sec) + " mtime = " + std::to_string(tv[1].tv_sec));
 
-  auto ret = utimensat(AT_FDCWD, ssd_path.c_str(), tv, AT_SYMLINK_NOFOLLOW);
-  if(ret < 0) {
+  auto ret = set_timestamps(ssd_path, tv);
+  if(ret != 0) {
     return cloudfs_error("utimens: ssd failed");
   }
 
@@ -413,19 +479,28 @@ int cloud_unlink(const char* path) {
   if(S_ISREG(stat_buf.st_mode) && stat_buf.st_nlink == 1) {
     // This is the last link to the file
     // delete the file on cloud if it is on cloud
-    Metadata metadata;
-    auto ret = get_metadata(ssd_path, metadata);
+    auto data_path = get_data_path(ssd_path);
+    bool on_cloud;
+    auto ret = is_on_cloud(ssd_path, on_cloud);
     if(ret != 0) {
-      return cloudfs_error("unlink: get_metadata failed");
+      return cloudfs_error("unlink: is_on_cloud failed");
     }
-    if(metadata.is_on_cloud) {
-      delete_data(bukcet_name, generate_object_key(ssd_path));
+    if(on_cloud) {
+      delete_object(bukcet_name, generate_object_key(ssd_path));
+      ret = unlink(get_data_path(ssd_path).c_str()); // delete the data file
+      if(ret < 0) {
+        return cloudfs_error("unlink: delete data file failed");
+      }
     }
   }
 
   auto ret = unlink(ssd_path.c_str());
   if(ret < 0) {
     return cloudfs_error("unlink: ssd failed");
+  }
+  ret = delete_data_file(get_data_path(ssd_path));
+  if(ret != 0) {
+    return cloudfs_error("unlink: delete data file failed");
   }
 
   cloudfs_info("unlink: success");
@@ -448,11 +523,24 @@ int cloud_rmdir(const char* path) {
 int cloud_truncate(const char* path, off_t size) {
   auto ssd_path = state_.ssd_path + std::string(path);
   // cloudfs_info("truncate: " + ssd_path + " size = " + std::to_string(size));
+  auto data_path = get_data_path(ssd_path);
+  bool on_cloud;
+  auto ret = is_on_cloud(ssd_path, on_cloud);
+  if(ret != 0) {
+    return cloudfs_error("truncate: is_on_cloud failed");
+  }
 
-  auto ret = truncate(ssd_path.c_str(), size + METADATA_SIZE); // do not truncate the metadata
+  auto truncate_path = ssd_path;
+  if(on_cloud) {
+    truncate_path = get_data_path(ssd_path);
+  }
+
+  ret = truncate(truncate_path.c_str(), size);
   if(ret < 0) {
     return cloudfs_error("truncate: ssd failed");
   }
+
+  ret = set_dirty(ssd_path, true);
 
   // cloudfs_info("truncate: success");
   return 0;

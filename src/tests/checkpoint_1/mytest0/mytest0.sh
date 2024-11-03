@@ -44,11 +44,15 @@ echo "Executing mytest0"
 (cd $FUSE_MNT && ln -s /home/student/mnt/fuse/test_file test_file_tmp)
 (cd $FUSE_MNT && ls -al)
 (cd $FUSE_MNT && cat test_file_tmp)
-(cd $FUSE_MNT && chmod 444 test_file)
-(cd $FUSE_MNT && cat test_file_tmp)
-(cd $FUSE_MNT && ls -al)
 (cd $FUSE_MNT && setfattr -n user.test -v "test" test_file)
 (cd $FUSE_MNT && getfattr -n user.test test_file)
+(cd $FUSE_MNT && chmod 444 test_file)
+(cd $FUSE_MNT && cat test_file_tmp)
+(cd $FUSE_MNT && cat test_file)
+(cd $FUSE_MNT && ln /home/student/mnt/fuse/test_file test_file_tmp2)
+(cd $FUSE_MNT && cat test_file_tmp2)
+(cd $FUSE_MNT && ls -al)
+
 
 #----
 #destructive test : always do this test at the end!!

@@ -1,2 +1,0 @@
-/usr/bin/ar qc libdedup.a CMakeFiles/dedup.dir/rabinpoly.cc.o CMakeFiles/dedup.dir/msb.cc.o
-/usr/bin/ranlib libdedup.a
