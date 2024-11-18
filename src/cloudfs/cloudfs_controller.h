@@ -101,7 +101,7 @@ class CloudfsControllerDedup : public CloudfsController {
 
   ChunkTable chunk_table_;
   ChunkSplitter chunk_splitter_;
-  static const size_t BUFFER_SIZE_MAX;
+  static const size_t RECHUNK_BUF_SIZE;
 
   public:
     CloudfsControllerDedup(struct cloudfs_state *state, const std::string& host_name, std::string bucket_name, 

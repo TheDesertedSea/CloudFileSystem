@@ -475,7 +475,7 @@ int CloudfsControllerNoDedup::truncate_file(const std::string& path, off_t size)
   return 0;
 }
 
-const size_t CloudfsControllerDedup::BUFFER_SIZE_MAX = 64 * 1024;
+const size_t CloudfsControllerDedup::RECHUNK_BUF_SIZE = 4 * 1024;
 
 CloudfsControllerDedup::CloudfsControllerDedup(struct cloudfs_state *state, const std::string& host_name, std::string bucket_name, 
       std::shared_ptr<DebugLogger> logger, int window_size, int avg_seg_size, int min_seg_size, int max_seg_size):
@@ -583,96 +583,117 @@ int CloudfsControllerDedup::write_file(const std::string& path, uint64_t fd, con
     return logger_->error("write_file: pwrite failed");
   }
 
+  auto len_increase = offset + written - start - buffer_len;
+  if(len_increase > 0) {
+    off_t old_size;
+    ret = get_size(fd, old_size);
+    if(ret != 0) {
+      return logger_->error("write_file: get_size failed");
+    }
+    ret = set_size(fd, old_size + len_increase);
+    if(ret != 0) {
+      return logger_->error("write_file: set_size failed");
+    }
+  }
   buffer_len = std::max(buffer_len, (size_t)(offset - start + written));
   open_files_[fd].len_ = buffer_len;
 
   auto& chunks = open_files_[fd].chunks_;
-  if(buffer_end == -1) {
-    chunks.resize(rechunk_start);
-    chunk_splitter_.init(start);
-    char split_buf[4096];
-    off_t cur = 0;
-    while(cur < buffer_len) {
-      ret = pread(fd, split_buf, 4096, cur);
-      if(ret < 0) {
-        return logger_->error("write_file: pread failed");
-      }
-      auto new_chunks = chunk_splitter_.get_chunks_next(split_buf, ret);
-      for(auto& chunk : new_chunks) {
-        chunks.push_back(chunk);
-      }
-      cur += ret;
+  std::vector<Chunk> new_chunks;
+  // rechunk buffer file contents
+  chunk_splitter_.init(start);
+  char rechunk_buf[RECHUNK_BUF_SIZE];
+  auto read_p = 0;
+  while(read_p < buffer_len) {
+    auto read_cnt = pread(fd, rechunk_buf, RECHUNK_BUF_SIZE, read_p);
+    if(read_cnt < 0) {
+      return logger_->error("write_file: pread failed");
     }
-  } else {
-    std::vector<Chunk> new_chunks;
-    chunk_splitter_.init(start);
-    char split_buf[4096];
-    off_t cur = 0;
-    while(cur < buffer_len) {
-      ret = pread(fd, split_buf, 4096, cur);
-      if(ret < 0) {
-        return logger_->error("write_file: pread failed");
+    auto next_chunks = chunk_splitter_.get_chunks_next(rechunk_buf, read_cnt);
+    for(auto& c: next_chunks) {
+      auto is_first = chunk_table_.Use(c.key_);
+      if(is_first) {
+        ret = buffer_controller_->upload_chunk(c.key_, buffer_path, c.start_ - start, c.len_);
       }
-      auto next_chunks = chunk_splitter_.get_chunks_next(split_buf, ret);
-      new_chunks.insert(new_chunks.end(), next_chunks.begin(), next_chunks.end());
+      new_chunks.push_back(c);
     }
-    if(new_chunks.size() > 0 && chunks[buffer_end].start_ + chunks[buffer_end].len_ == new_chunks.back().start_ + new_chunks.back().len_) {
-      chunks.resize(rechunk_start);
-      chunks.insert(chunks.end(), new_chunks.begin(), new_chunks.end());
-    } else {
-      // rechunk following chunks, start from buffer_end + 1
-      auto cur_idx = buffer_end + 1;
-      do {
-        // clear buffer file
-        ret = buffer_controller_->clear_file(buffer_path);
-        if(ret != 0) {
-          return logger_->error("write_file: clear_file failed");
-        }
+    read_p += read_cnt;
+  }
 
-        // download chunk
-        auto& chunk = chunks[cur_idx];
-        ret = buffer_controller_->download_chunk(chunk.key_, buffer_path, 0);
+  size_t release_end;
+  if(buffer_end != -1) {
+    if(new_chunks.back().start_ + new_chunks.back().len_ == chunks[buffer_end].start_ + chunks[buffer_end].len_) {
+      release_end = buffer_end;
+    } else {
+      // rechunk the rest of the file
+      release_end = chunks.size() - 1;
+      auto cur_chunk_idx = buffer_end + 1;
+      while(cur_chunk_idx < chunks.size()) {
+        buffer_controller_->clear_file(buffer_path);
+        auto& chunk = chunks[cur_chunk_idx];
+        auto ret = buffer_controller_->download_chunk(chunk.key_, buffer_path, 0);
         if(ret != 0) {
           return logger_->error("write_file: download_chunk failed");
         }
-
-        cur = 0;
-        while(cur < chunk.len_) {
-          ret = pread(fd, split_buf, 4096, cur);
-          if(ret < 0) {
+        read_p = 0;
+        while(read_p < chunk.len_) {
+          auto read_cnt = pread(fd, rechunk_buf, RECHUNK_BUF_SIZE, read_p);
+          if(read_cnt < 0) {
             return logger_->error("write_file: pread failed");
           }
-          auto next_chunks = chunk_splitter_.get_chunks_next(split_buf, ret);
-          new_chunks.insert(new_chunks.end(), next_chunks.begin(), next_chunks.end());
-          cur += ret;
+          auto next_chunks = chunk_splitter_.get_chunks_next(rechunk_buf, read_cnt);
+          for(auto& c: next_chunks) {
+            auto is_first = chunk_table_.Use(c.key_);
+            if(is_first) {
+              ret = buffer_controller_->upload_chunk(c.key_, buffer_path, 0, c.len_);
+            }
+            new_chunks.push_back(c);
+          }
+          read_p += read_cnt;
         }
 
-        cur_idx++;
-      } while(cur_idx < chunks.size() && new_chunks.size() > 0 && chunks[cur_idx - 1].start_ + chunks[cur_idx - 1].len_ != new_chunks.back().start_ + new_chunks.back().len_);
-
-      auto final_chunk = chunk_splitter_->get_chunk_last();
-      if(final_chunk.len_ > 0) {
-        new_chunks.push_back(final_chunk);
+        if(new_chunks.back().start_ + new_chunks.back().len_ == chunks[cur_chunk_idx].start_ + chunks[cur_chunk_idx].len_) {
+          // no need to rechunk more
+          release_end = cur_chunk_idx;
+          break;
+        }
+        cur_chunk_idx++;
       }
 
-      auto tail_chunks = std::vector<Chunk>(chunks.begin() + cur_idx, chunks.end());
-      chunks.resize(rechunk_start);
-      chunks.insert(chunks.end(), new_chunks.begin(), new_chunks.end());
-      chunks.insert(chunks.end(), tail_chunks.begin(), tail_chunks.end());
+      auto last_chunk = chunk_splitter_.get_last_chunk();
+      if(last_chunk.len_ > 0) {
+        auto is_first = chunk_table_.Use(last_chunk.key_);
+        if(is_first) {
+          ret = buffer_controller_->upload_chunk(last_chunk.key_, buffer_path, 0, last_chunk.len_);
+        }
+        new_chunks.push_back(last_chunk);
+      }
+    }
+  } else {
+    release_end = chunks.size() - 1;
+  }
+
+  for(size_t i = rechunk_start; i <= release_end; i++) {
+    auto is_last = chunk_table_.Release(chunks[i].key_);
+    if(is_last) {
+      ret = buffer_controller_->delete_object(chunks[i].key_);
     }
   }
 
+  chunks.resize(rechunk_start);
+  chunks.insert(chunks.end(), new_chunks.begin(), new_chunks.end());
   ret = set_chunkinfo(main_path, chunks);
   if(ret != 0) {
     return logger_->error("write_file: set_chunkinfo failed");
   }
 
   logger_->info("write_file: success, write " + std::to_string(total_written) + " bytes");
-  return total_written;
+  return written;
 }
 
 int CloudfsControllerDedup::close_file(const std::string& path, uint64_t fd) {
   logger_->info("close_file: " + path + ", fd: " + std::to_string(fd));
+
   return 0;
 }
 
