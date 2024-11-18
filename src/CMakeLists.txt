@@ -11,10 +11,14 @@ set(cloudfs_srcs
         cloudfs/main.cc
         cloudfs/util.h
         cloudfs/util.cc
-        cloudfs/metadata.h
-        cloudfs/metadata.cc
-        cloudfs/data.h
-        cloudfs/data.cc
+        cloudfs/buffer_file.h
+        cloudfs/buffer_file.cc
+        cloudfs/chunk_table.h
+        cloudfs/chunk_table.cc
+        cloudfs/chunk_splitter.h
+        cloudfs/chunk_splitter.cc
+        cloudfs/cloudfs_controller.h
+        cloudfs/cloudfs_controller.cc
         )
 
 
