@@ -1,1 +1,0 @@
-/usr/bin/cc CMakeFiles/snapshot.dir/snapshot-test.c.o -o snapshot 

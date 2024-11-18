@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <sys/types.h>
@@ -120,6 +121,6 @@ class CloudfsControllerDedup : public CloudfsController {
     int truncate_file(const std::string& path, off_t size) override;
   
   private:
-    int prepare_read_data(const std::string& buffer_path, off_t offset, off_t& start, size_t& buffer_len, std::vector<Chunk>& chunks);
-    int prepare_write_data(const std::string& buffer_path, off_t offset, off_t& start, size_t& buffer_len, std::vector<Chunk>& chunks, size_t write_size);
+    int prepare_read_data(const std::string& buffer_path, off_t offset, size_t r_size, uint64_t fd);
+    int prepare_write_data(const std::string& buffer_path, off_t offset, size_t w_size, uint64_t fd, size_t& rechunk_start, size_t& buffer_end);
 };
