@@ -45,7 +45,14 @@ void *cloudfs_init(struct fuse_conn_info *conn UNUSED)
 {
   // data_service_init(state_.hostname, bukcet_name);
   logger_ = std::make_shared<DebugLogger>(log_path);
-  controller_ = std::unique_ptr<CloudfsController>(new CloudfsControllerNoDedup(&state_, state_.hostname, bukcet_name, logger_));
+  if(state_.no_dedup) {
+    logger_->info("cloudfs_init: no dedup");
+    controller_ = std::unique_ptr<CloudfsController>(new CloudfsControllerNoDedup(&state_, state_.hostname, bukcet_name, logger_));
+  } else {
+    logger_->info("cloudfs_init: dedup");
+    controller_ = std::unique_ptr<CloudfsController>(new CloudfsControllerDedup(&state_, state_.hostname, bukcet_name, logger_,
+      state_.rabin_window_size, state_.avg_seg_size, state_.min_seg_size, state_.max_seg_size));
+  }
   return NULL;
 }
 

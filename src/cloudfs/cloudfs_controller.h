@@ -122,5 +122,5 @@ class CloudfsControllerDedup : public CloudfsController {
   
   private:
     int prepare_read_data(const std::string& buffer_path, off_t offset, size_t r_size, uint64_t fd);
-    int prepare_write_data(const std::string& buffer_path, off_t offset, size_t w_size, uint64_t fd, size_t& rechunk_start, size_t& buffer_end);
+    int prepare_write_data(const std::string& buffer_path, off_t offset, size_t w_size, uint64_t fd, int& rechunk_start, int& buffer_end);
 };

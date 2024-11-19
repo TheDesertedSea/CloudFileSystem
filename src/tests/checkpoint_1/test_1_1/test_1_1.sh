@@ -21,7 +21,7 @@ source $SCRIPTS_DIR/functions.sh
 # and the reference files are in $REFERENCE_DIR
 # Creates the intermediate results in $LOG_DIR
 #
-process_args cloudfs --ssd-path $SSD_MNT_ --fuse-path $FUSE_MNT_ --threshold $THRESHOLD
+process_args cloudfs --ssd-path $SSD_MNT_ --fuse-path $FUSE_MNT_ --threshold $THRESHOLD 
 
 # test setup
 rm -rf $REFERENCE_DIR
