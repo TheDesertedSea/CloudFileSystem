@@ -1,0 +1,7 @@
+cd ../../..
+make
+
+cd ~/cmu15746-project2/src/tests/checkpoint_1/test_1_2
+./test_1_2.sh
+
+cd ~/cmu15746-project2/src

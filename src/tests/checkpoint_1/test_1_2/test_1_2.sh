@@ -53,7 +53,10 @@ collect_stats > $STAT_FILE
 diff $LOG_DIR/ls-lR.out.master $LOG_DIR/ls-lR.out
 print_result $?
 
+ls -al $S3_DIR/cloudfs
+
 echo -ne "Basic file content test(md5sum)   "
+
 (cd $REFERENCE_DIR && find .  \( ! -regex '.*/\..*' \) -type f -exec md5sum \{\} \; | sort -k2 > $LOG_DIR/md5sum.out.master)
 (cd $FUSE_MNT && find .  \( ! -regex '.*/\..*' \) -type f -exec md5sum \{\} \; | sort -k2 > $LOG_DIR/md5sum.out)
 

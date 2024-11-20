@@ -63,7 +63,7 @@ std::vector<Chunk> ChunkSplitter::get_chunks_next(const char *buf, size_t len) {
 
 Chunk ChunkSplitter::get_chunk_last() {
   if(chunk_len_ == 0) {
-      return {0, 0, {}};
+      return {};
   }
 
   unsigned char md_value[EVP_MAX_MD_SIZE];

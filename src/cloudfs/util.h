@@ -27,4 +27,3 @@ public:
 
   FILE* get_file();
 };
-

@@ -21,12 +21,15 @@ class CloudfsController {
       size_t len_;
       bool is_dirty_;
       std::vector<Chunk> chunks_;
+      uint64_t op_fd_;
 
       OpenFile() = default;
       OpenFile(const std::string main_path, off_t start, size_t len, bool is_dirty)
         : main_path_(std::move(main_path)), start_(start), len_(len), is_dirty_(is_dirty) {}
       OpenFile(const std::string main_path, off_t start, size_t len, bool is_dirty, std::vector<Chunk> chunks)
         : main_path_(std::move(main_path)), start_(start), len_(len), is_dirty_(is_dirty), chunks_(std::move(chunks)) {}
+      OpenFile(const std::string main_path, off_t start, size_t len, bool is_dirty, std::vector<Chunk> chunks, uint64_t op_fd)
+        : main_path_(std::move(main_path)), start_(start), len_(len), is_dirty_(is_dirty), chunks_(std::move(chunks)), op_fd_(op_fd) {}
     };
 
     struct cloudfs_state *state_;
@@ -121,6 +124,6 @@ class CloudfsControllerDedup : public CloudfsController {
     int truncate_file(const std::string& path, off_t size) override;
   
   private:
-    int prepare_read_data(const std::string& buffer_path, off_t offset, size_t r_size, uint64_t fd);
-    int prepare_write_data(const std::string& buffer_path, off_t offset, size_t w_size, uint64_t fd, int& rechunk_start, int& buffer_end);
+    int prepare_read_data(off_t offset, size_t r_size, uint64_t fd);
+    int prepare_write_data(off_t offset, size_t w_size, uint64_t fd, int& rechunk_start_idx, int& buffer_end_idx);
 };

@@ -12,8 +12,19 @@ struct Chunk{
   size_t len_;
   std::string key_;
 
-  Chunk() = default;
-  Chunk(off_t start, size_t len, const std::vector<char>& key) : start_(start), len_(len), key_(key.begin(), key.end()) {
+  Chunk(): start_(0), len_(0) {}
+  Chunk(off_t start, size_t len, const std::vector<char>& key) : start_(start), len_(len) {
+    for(auto& c: key) {
+      key_ += char_to_hex(static_cast<unsigned char>(c));
+    }
+  }
+  Chunk(off_t start, size_t len, const std::string& key) : start_(start), len_(len), key_(key) {}
+
+private:
+  static std::string char_to_hex(unsigned char c) {
+    char buf[3];
+    sprintf(buf, "%02x", c);
+    return std::string(buf);
   }
 };
 
