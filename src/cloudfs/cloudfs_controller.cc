@@ -1,4 +1,5 @@
 #include "cloudfs_controller.h"
+#include <cmath>
 #include <cstddef>
 #include <cstdio>
 #include <stdexcept>
@@ -93,12 +94,14 @@ int CloudfsController::get_chunkinfo(const std::string& main_path, std::vector<C
     return -1;
   }
 
-  int num_chunks;
-  fread(&num_chunks, sizeof(int), 1, file);
+  size_t num_chunks;
+  fread(&num_chunks, sizeof(size_t), 1, file);
+
+  // logger_->info("get_chunkinfo: num_chunks " + std::to_string(num_chunks));
 
   chunks.clear();
   chunks.reserve(num_chunks);
-  for(int i = 0; i < num_chunks; i++) {
+  for(size_t i = 0; i < num_chunks; i++) {
     off_t start;
     size_t len;
     fread(&start, sizeof(off_t), 1, file);
@@ -109,6 +112,7 @@ int CloudfsController::get_chunkinfo(const std::string& main_path, std::vector<C
     fread(key.data(), sizeof(char), key_len, file);
     std::string key_str(key.begin(), key.end());
     chunks.emplace_back(start, len, key_str);
+    // logger_->info("get_chunkinfo: start " + std::to_string(start) + ", len " + std::to_string(len) + ", key " + key_str);
   }
   fclose(file);
 
@@ -121,10 +125,11 @@ int CloudfsController::set_chunkinfo(const std::string& main_path, std::vector<C
     return -1;
   }
 
-  int num_chunks = chunks.size();
-  fwrite(&num_chunks, sizeof(int), 1, file);
+  size_t num_chunks = chunks.size();
+  fwrite(&num_chunks, sizeof(size_t), 1, file);
+  // logger_->info("set_chunkinfo: num_chunks " + std::to_string(num_chunks));
 
-  for(int i = 0; i < num_chunks; i++) {
+  for(size_t i = 0; i < num_chunks; i++) {
     fwrite(&chunks[i].start_, sizeof(off_t), 1, file);
     fwrite(&chunks[i].len_, sizeof(size_t), 1, file);
     size_t key_len = chunks[i].key_.size();
@@ -227,7 +232,7 @@ int CloudfsController::create_file(const std::string& path, mode_t mode) {
     return logger_->error("create_file: set_size failed");
   }
 
-  logger_->info("create_file: success");
+  // logger_->info("create_file: success");
 
   return 0;
 }
@@ -483,7 +488,7 @@ CloudfsControllerDedup::CloudfsControllerDedup(struct cloudfs_state *state, cons
       std::shared_ptr<DebugLogger> logger, int window_size, int avg_seg_size, int min_seg_size, int max_seg_size):
   CloudfsController(state, host_name, std::move(bucket_name), std::move(logger)), chunk_table_("chunk_table"),
   chunk_splitter_(window_size, avg_seg_size, min_seg_size, max_seg_size) { 
-    
+    logger_->info("CloudfsControllerDedup: window_size " + std::to_string(window_size) + ", avg_seg_size " + std::to_string(avg_seg_size) + ", min_seg_size " + std::to_string(min_seg_size) + ", max_seg_size " + std::to_string(max_seg_size));
 }
 
 CloudfsControllerDedup::~CloudfsControllerDedup() {
@@ -495,7 +500,7 @@ int CloudfsControllerDedup::open_file(const std::string& path, int flags, uint64
   auto main_path = state_->ssd_path + path;
 
   // flags remove O_CREAT, O_EXCL
-  auto ret = open(main_path.c_str(), flags & ~(O_CREAT | O_EXCL));
+  auto ret = open(main_path.c_str(), flags & ~(O_CREAT | O_EXCL | O_TRUNC));
   if(ret == -1) {
     return logger_->error("open_file: open main_path failed");
   }
@@ -525,6 +530,7 @@ int CloudfsControllerDedup::open_file(const std::string& path, int flags, uint64
 
   open_files_[*fd] = OpenFile(main_path, 0, 0, false, chunks, op_fd);
 
+  logger_->info("open_file: success");
   return 0;
 }
 
@@ -538,7 +544,7 @@ int CloudfsControllerDedup::read_file(const std::string& path, uint64_t fd, char
   if(ret != 0) {
     return logger_->error("read_file: get_size failed");
   }
-  logger_->info("read_file: file_size " + std::to_string(file_size));
+  // logger_->info("read_file: file_size " + std::to_string(file_size));
 
   off_t buffer_offset;
   if(file_size > state_->threshold) {
@@ -554,7 +560,7 @@ int CloudfsControllerDedup::read_file(const std::string& path, uint64_t fd, char
     buffer_offset = 0;
   }
 
-  logger_->info("read_file: ready to read, read size " + std::to_string(read_size) + ", read offset " + std::to_string(read_offset - buffer_offset));
+  // logger_->info("read_file: ready to read, read size " + std::to_string(read_size) + ", read offset " + std::to_string(read_offset - buffer_offset));
   auto read_cnt = pread(fd, buf, read_size, read_offset - buffer_offset);
   if(read_cnt < 0) {
     return logger_->error("read_file: pread failed");
@@ -751,9 +757,9 @@ int CloudfsControllerDedup::write_file(const std::string& path, uint64_t fd, con
   chunks.resize(rechunk_start_idx);
   chunks.insert(chunks.end(), new_chunks.begin(), new_chunks.end());
 
-  for(auto& c: chunks) {
-    logger_->info("write_file: chunk start " + std::to_string(c.start_) + ", len " + std::to_string(c.len_) + ", key " + c.key_);
-  }
+  // for(auto& c: chunks) {
+  //   logger_->info("write_file: chunk start " + std::to_string(c.start_) + ", len " + std::to_string(c.len_) + ", key " + c.key_);
+  // }
 
   logger_->info("write_file: success, write " + std::to_string(written) + " bytes" + ", chunk count " + std::to_string(chunks.size()));
   ret = set_chunkinfo(main_path, chunks);
@@ -774,6 +780,18 @@ int CloudfsControllerDedup::close_file(const std::string& path, uint64_t fd) {
   if(ret == -1) {
     return logger_->error("close_file: close buffer_path failed");
   }
+
+  auto main_path = open_files_[fd].main_path_;
+
+  // std::vector<Chunk> chunks;
+  // ret = get_chunkinfo(main_path, chunks);
+  // if(ret != 0) {
+  //   return logger_->error("close_file: get_chunkinfo failed");
+  // }
+
+  // for(auto& chunk : chunks) {
+  //   logger_->info("close_file: chunk start " + std::to_string(chunk.start_) + ", len " + std::to_string(chunk.len_) + ", key " + chunk.key_);
+  // }
 
   return 0;
 }
@@ -812,6 +830,7 @@ int CloudfsControllerDedup::unlink_file(const std::string& path) {
     }
 
     for(auto& c: chunks) {
+      // logger_->info("unlink_file: chunk start " + std::to_string(c.start_) + ", len " + std::to_string(c.len_) + ", key " + c.key_);
       auto is_last = chunk_table_.Release(c.key_);
       if(is_last) {
         ret = buffer_controller_->delete_object(c.key_);
@@ -1013,7 +1032,7 @@ int CloudfsControllerDedup::prepare_read_data(off_t offset, size_t r_size, uint6
 
   for(int i = read_start_idx; i <= read_end_idx; i++) {
     auto& chunk = chunks[i];
-    logger_->info("prepare_read_data: download chunk start " + std::to_string(chunk.start_) + ", len " + std::to_string(chunk.len_) + ", key " + chunk.key_);
+    // logger_->info("prepare_read_data: download chunk start " + std::to_string(chunk.start_) + ", len " + std::to_string(chunk.len_) + ", key " + chunk.key_);
     // download chunk
     auto ret = buffer_controller_->download_chunk(chunk.key_, op_fd, buffer_len);
     // struct stat stbuf;

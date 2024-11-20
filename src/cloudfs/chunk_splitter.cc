@@ -16,6 +16,7 @@ ChunkSplitter::~ChunkSplitter() {
 }
 
 void ChunkSplitter::init(off_t start) {
+  rabin_reset(rp_);
   chunk_start_ = start;
   chunk_len_ = 0;
   EVP_DigestInit_ex(mdctx_, md_, NULL);
