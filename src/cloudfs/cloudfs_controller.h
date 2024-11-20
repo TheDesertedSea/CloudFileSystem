@@ -57,6 +57,8 @@ class CloudfsController {
     virtual int unlink_file(const std::string& path) = 0;
 
     virtual int truncate_file(const std::string& path, off_t size) = 0;
+
+    virtual void destroy() = 0;
   protected:
     int get_buffer_path(const std::string& path, std::string& buffer_path);
 
@@ -98,6 +100,8 @@ class CloudfsControllerNoDedup : public CloudfsController {
     int unlink_file(const std::string& path) override;
 
     int truncate_file(const std::string& path, off_t size) override;
+
+    void destroy() override;
 };
 
 class CloudfsControllerDedup : public CloudfsController {
@@ -122,6 +126,8 @@ class CloudfsControllerDedup : public CloudfsController {
     int unlink_file(const std::string& path) override;
 
     int truncate_file(const std::string& path, off_t size) override;
+
+    void destroy() override;
   
   private:
     int prepare_read_data(off_t offset, size_t r_size, uint64_t fd);

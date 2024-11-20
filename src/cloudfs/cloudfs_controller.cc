@@ -159,6 +159,7 @@ CloudfsController::CloudfsController(struct cloudfs_state *state, const std::str
 }
 
 CloudfsController::~CloudfsController() {
+  
 }
 
 CloudfsControllerNoDedup::CloudfsControllerNoDedup(struct cloudfs_state *state, const std::string& host_name, std::string bucket_name, std::shared_ptr<DebugLogger> logger) 
@@ -482,11 +483,14 @@ int CloudfsControllerNoDedup::truncate_file(const std::string& path, off_t size)
   return 0;
 }
 
+void CloudfsControllerNoDedup::destroy() {
+}
+
 const size_t CloudfsControllerDedup::RECHUNK_BUF_SIZE = 4 * 1024;
 
 CloudfsControllerDedup::CloudfsControllerDedup(struct cloudfs_state *state, const std::string& host_name, std::string bucket_name, 
       std::shared_ptr<DebugLogger> logger, int window_size, int avg_seg_size, int min_seg_size, int max_seg_size):
-  CloudfsController(state, host_name, std::move(bucket_name), std::move(logger)), chunk_table_("chunk_table"),
+  CloudfsController(state, host_name, std::move(bucket_name), logger), chunk_table_(state->ssd_path, logger),
   chunk_splitter_(window_size, avg_seg_size, min_seg_size, max_seg_size) { 
     logger_->info("CloudfsControllerDedup: window_size " + std::to_string(window_size) + ", avg_seg_size " + std::to_string(avg_seg_size) + ", min_seg_size " + std::to_string(min_seg_size) + ", max_seg_size " + std::to_string(max_seg_size));
 }
@@ -1002,6 +1006,10 @@ int CloudfsControllerDedup::truncate_file(const std::string& path, off_t truncat
 
   logger_->info("truncate_file: success");
   return 0;
+}
+
+void CloudfsControllerDedup::destroy() {
+  chunk_table_.Persist();
 }
 
 int CloudfsControllerDedup::prepare_read_data(off_t offset, size_t r_size, uint64_t fd) {

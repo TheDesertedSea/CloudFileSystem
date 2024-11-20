@@ -57,6 +57,7 @@ void *cloudfs_init(struct fuse_conn_info *conn UNUSED)
 }
 
 void cloudfs_destroy(void *data UNUSED) {
+  controller_->destroy();
 }
 
 int cloudfs_getattr(const char *path, struct stat *statbuf)
