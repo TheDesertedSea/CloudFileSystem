@@ -1184,16 +1184,16 @@ int CloudfsControllerDedup::prepare_write_data(off_t offset, size_t w_size, uint
 
   auto write_start_idx = get_chunk_idx(chunks, offset);
   assert(write_start_idx != -1);
-
+  
   // read previous chunks until get max_seg_size(to compact the chunks, avoid many small chunks due to many small writes)
   int prev_chunk_len_sum = 0;
-  while(write_start_idx > 0 && prev_chunk_len_sum < state_->max_seg_size) {
-    if((int)chunks[write_start_idx - 1].len_ >= state_->max_seg_size) {
-      // cannot compact a max_seg_size chunk
+  while(write_start_idx > 0) {
+    prev_chunk_len_sum += chunks[write_start_idx - 1].len_;
+    if(prev_chunk_len_sum >= state_->max_seg_size) {
+      // has collected enough data
       break;
     }
     write_start_idx--;
-    prev_chunk_len_sum += chunks[write_start_idx].len_;
   }
 
   auto write_end_idx = get_chunk_idx(chunks, offset + w_size - 1);
