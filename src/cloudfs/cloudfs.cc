@@ -67,55 +67,55 @@ int cloudfs_getattr(const char *path, struct stat *statbuf)
 
 int cloudfs_getxattr(const char* path, const char* attr_name, char* buf, size_t size) {
   auto ssd_path = state_.ssd_path + std::string(path);
-  logger_->info("getxattr: " + ssd_path + " attr_name = " + std::string(attr_name));
+  // logger_->info("getxattr: " + ssd_path + " attr_name = " + std::string(attr_name));
   
   auto ret = lgetxattr(ssd_path.c_str(), attr_name, buf, size);
   if(ret < 0) {
     return logger_->error("getxattr: failed");
   }
 
-  logger_->info("getxattr: success");
+  // logger_->info("getxattr: success");
   return ret;
 }
 
 int cloudfs_setxattr(const char* path, const char* attr_name, const char* attr_value, size_t size, int flags) {
   auto ssd_path = state_.ssd_path + std::string(path);
-  logger_->info("setxattr: " + ssd_path + " attr_name = " + std::string(attr_name) + " size = " + std::to_string(size));
+  // logger_->info("setxattr: " + ssd_path + " attr_name = " + std::string(attr_name) + " size = " + std::to_string(size));
   
   auto ret = lsetxattr(ssd_path.c_str(), attr_name, attr_value, size, flags);
   if(ret < 0) {
     return logger_->error("setxattr: failed");
   }
 
-  logger_->info("setxattr: success");
+  // logger_->info("setxattr: success");
   return 0;
 }
 
 int cloudfs_mkdir(const char *path, mode_t mode)
 {
   auto ssd_path = state_.ssd_path + std::string(path);
-  logger_->info("mkdir: " + ssd_path + " mode = " + std::to_string(mode));
+  // logger_->info("mkdir: " + ssd_path + " mode = " + std::to_string(mode));
 
   auto ret = mkdir(ssd_path.c_str(), mode);
   if(ret != 0) {
     return logger_->error("mkdir: failed");
   }
 
-  logger_->info("mkdir: success");
+  // logger_->info("mkdir: success");
   return 0;
 }
 
 int cloudfs_mknod(const char *path, mode_t mode, dev_t dev)
 {
   auto ssd_path = state_.ssd_path + std::string(path);
-  logger_->info("mknod: " + ssd_path + " mode = " + std::to_string(mode) + " dev = " + std::to_string(dev));
+  // logger_->info("mknod: " + ssd_path + " mode = " + std::to_string(mode) + " dev = " + std::to_string(dev));
 
   auto ret = mknod(ssd_path.c_str(), mode, dev);
   if(ret != 0) {
     return logger_->error("mknod: failed");
   }
 
-  logger_->info("mknod: success");
+  // logger_->info("mknod: success");
   return 0;
 }
 
@@ -149,7 +149,7 @@ int cloud_release(const char *path, struct fuse_file_info *fi) {
 
 int cloud_opendir(const char *path, struct fuse_file_info *fi) {
   auto ssd_path = state_.ssd_path + std::string(path);
-  logger_->info("opendir: " + ssd_path);
+  // logger_->info("opendir: " + ssd_path);
 
   auto dir = opendir(ssd_path.c_str());
   if(dir == NULL) {
@@ -157,12 +157,12 @@ int cloud_opendir(const char *path, struct fuse_file_info *fi) {
   }
   fi->fh = (uintptr_t)dir;
 
-  logger_->info("opendir: success");
+  // logger_->info("opendir: success");
   return 0;
 }
 
 int cloud_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fi) {
-  logger_->info("readdir: " + std::string(path));
+  // logger_->info("readdir: " + std::string(path));
 
   auto dir = (DIR *)fi->fh;
   auto entry = readdir(dir);
@@ -184,12 +184,12 @@ int cloud_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t off
     }
   } while((entry = readdir(dir)) != NULL);
 
-  logger_->info("readdir: success");
+  // logger_->info("readdir: success");
   return 0;
 }
 
 int cloud_access(const char *path, int mask) {
-  logger_->info("access: " + std::string(path) + " mask = " + std::to_string(mask));
+  // logger_->info("access: " + std::string(path) + " mask = " + std::to_string(mask));
 
   auto ssd_path = state_.ssd_path + std::string(path);
   auto ret = access(ssd_path.c_str(), mask);
@@ -197,66 +197,66 @@ int cloud_access(const char *path, int mask) {
     return logger_->error("access: ssd failed");
   }
 
-  logger_->info("access: success");
+  // logger_->info("access: success");
   return 0;
 }
 
 int cloud_utimens(const char *path, const struct timespec tv[2]) {
   auto ssd_path = state_.ssd_path + std::string(path);
-  logger_->info("utimens: " + ssd_path + " atime = " + std::to_string(tv[0].tv_sec) + " mtime = " + std::to_string(tv[1].tv_sec));
+  // logger_->info("utimens: " + ssd_path + " atime = " + std::to_string(tv[0].tv_sec) + " mtime = " + std::to_string(tv[1].tv_sec));
 
   auto ret = utimensat(AT_FDCWD, ssd_path.c_str(), tv, AT_SYMLINK_NOFOLLOW);
   if(ret < 0) {
     return logger_->error("utimens: failed");
   }
 
-  logger_->info("utimens: success");
+  // logger_->info("utimens: success");
   return 0;
 }
 
 int cloud_chmod(const char *path, mode_t mode) {
   auto ssd_path = state_.ssd_path + std::string(path);
-  logger_->info("chmod: " + ssd_path + " mode = " + std::to_string(mode));
+  // logger_->info("chmod: " + ssd_path + " mode = " + std::to_string(mode));
 
   auto ret = chmod(ssd_path.c_str(), mode);
   if(ret < 0) {
     return logger_->error("chmod: ssd failed");
   }
 
-  logger_->info("chmod: success");
+  // logger_->info("chmod: success");
   return 0;
 }
 
 int cloud_link(const char* path, const char* newpath) {
   auto ssd_path = state_.ssd_path + std::string(path);
   auto new_ssd_path = state_.ssd_path + std::string(newpath);
-  logger_->info("link: " + ssd_path + " -> " + new_ssd_path);
+  // logger_->info("link: " + ssd_path + " -> " + new_ssd_path);
 
   auto ret = link(ssd_path.c_str(), new_ssd_path.c_str());
   if(ret < 0) {
     return logger_->error("link: ssd failed");
   }
 
-  logger_->info("link: success");
+  // logger_->info("link: success");
   return 0;
 }
 
 int cloud_symlink(const char* target, const char* linkpath) {
   auto ssd_linkpath = state_.ssd_path + std::string(linkpath);
-  logger_->info("symlink: " + std::string(target) + " -> " + ssd_linkpath);
+  // logger_->info("symlink: " + std::string(target) + " -> " + ssd_linkpath);
 
   auto ret = symlink(target, ssd_linkpath.c_str());
   if(ret < 0) {
     return logger_->error("symlink: ssd failed");
   }
 
-  logger_->info("symlink: success");
+  // logger_->info("symlink: success");
   return 0;
 }
 
 int cloud_readlink(const char* path, char* buf, size_t size) {
   auto ssd_path = state_.ssd_path + std::string(path);
-  logger_->info("readlink: " + ssd_path);
+  // logger_->info("readlink: " + ssd_path);
 
   auto ret = readlink(ssd_path.c_str(), buf, size);
   if(ret < 0) {
@@ -267,7 +267,7 @@ int cloud_readlink(const char* path, char* buf, size_t size) {
     return logger_->error("readlink: ssd failed");
   }
   buf[ret] = '\0';
-  logger_->info("readlink: success");
+  // logger_->info("readlink: success");
   return 0;
 }
 
@@ -277,14 +277,14 @@ int cloud_unlink(const char* path) {
 
 int cloud_rmdir(const char* path) {
   auto ssd_path = state_.ssd_path + std::string(path);
-  logger_->info("rmdir: " + ssd_path);
+  // logger_->info("rmdir: " + ssd_path);
 
   auto ret = rmdir(ssd_path.c_str());
   if(ret < 0) {
     return logger_->error("rmdir: ssd failed");
   }
 
-  logger_->info("rmdir: success");
+  // logger_->info("rmdir: success");
   return 0;
 }
 

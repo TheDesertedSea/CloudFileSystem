@@ -8,7 +8,7 @@
 
 BufferController::BufferController(const std::string& host_name, std::string bucket_name, std::shared_ptr<DebugLogger> logger)
     : bucket_name_(std::move(bucket_name)), logger_(std::move(logger)) {
-    logger_->info("BufferController: " + bucket_name_);
+    // logger_->info("BufferController: " + bucket_name_);
 
     cloud_init(host_name.c_str());
     cloud_print_error(logger_->get_file());
@@ -20,9 +20,9 @@ BufferController::BufferController(const std::string& host_name, std::string buc
     cloud_list_service(list_service);
     cloud_print_error(logger_->get_file());
 
-    for(auto& bucket : bucket_list) {
-        logger_->info("Bucket: " + bucket);
-    }
+    // for(auto& bucket : bucket_list) {
+    //     logger_->info("Bucket: " + bucket);
+    // }
 }
 
 FILE* BufferController::infile = NULL;
@@ -51,7 +51,7 @@ int BufferController::download_chunk(const std::string& key, uint64_t fd, off_t 
 }
 
 int BufferController::upload_chunk(const std::string& key, uint64_t fd, off_t offset, size_t size) {
-    logger_->info("upload_chunk: " + key + ", offset: " + std::to_string(offset) + ", size: " + std::to_string(size));
+    // logger_->info("upload_chunk: " + key + ", offset: " + std::to_string(offset) + ", size: " + std::to_string(size));
 
     // FILE* test = fopen("/home/student/test.txt", "w+");
     // if(test == NULL) {

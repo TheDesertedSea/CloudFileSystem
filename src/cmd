@@ -21,3 +21,6 @@ cd ~/cmu15746-project2/src/tests/checkpoint_2/test_2_4
 
 cd ~/cmu15746-project2/src/tests/checkpoint_2/test_2_5
 ./test_2_5.sh
+
+cd ~/cmu15746-project2/src/tests/checkpoint_2/test_2_14
+./test_2_14.sh
