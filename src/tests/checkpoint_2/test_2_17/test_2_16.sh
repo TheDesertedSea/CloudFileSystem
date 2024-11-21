@@ -11,8 +11,10 @@ source $TEST_DIR/../../../scripts/paths.sh
 REFERENCE_DIR="/tmp/cloudfstest"
 LOG_DIR="/tmp/testrun-`date +"%Y-%m-%d-%H%M%S"`"
 STAT_FILE="$LOG_DIR/stats"
-THRESHOLD="16"
+THRESHOLD="4"
 AVGSEGSIZE="4"
+MINSEGSIZE="1"
+MAXSEGSIZE="8"
 TEST_FILE="largefile"
 MODIFIED_FILE="largefile.modified"
 FILE_SIZE=$(wc -c < $TEST_DIR/$TEST_FILE)
@@ -27,7 +29,7 @@ NODEDUP=0
 # Creates the intermediate results in $LOG_DIR
 #
 
-process_args cloudfs --ssd-path $SSD_MNT_ --fuse-path $FUSE_MNT_ --threshold $THRESHOLD --avg-seg-size $AVGSEGSIZE
+process_args cloudfs --ssd-path $SSD_MNT_ --fuse-path $FUSE_MNT_ --threshold $THRESHOLD --avg-seg-size $AVGSEGSIZE --min-seg-size $MINSEGSIZE --max-seg-size $MAXSEGSIZE
 
 # test setup
 rm -rf $REFERENCE_DIR
@@ -40,12 +42,12 @@ reinit_env
 # Testcases assumes that test data does not have any hidden files(.* files)
 # Students should have all their metadata in hidden files/dirs
 echo ""
-echo "Executing test_2_15"
+echo "Executing test_2_17"
 echo -e "Running cloudfs in dedup mode\n"
 
 collect_stats > $STAT_FILE
 echo -e "\nCloud statistics -->"
-echo "Capacity usage in cloud : $(get_cloud_max_usage $STAT_FILE)"
+echo "Current usage in cloud : $(get_cloud_current_usage $STAT_FILE)"
 
 #Copy the test file into the fuse folder and the reference folder
 echo -e "Copying test file into the fuse folder..."
@@ -61,7 +63,7 @@ sleep 4
 
 collect_stats > $STAT_FILE
 echo -e "\nCloud statistics -->"
-echo "Capacity usage in cloud : $(get_cloud_max_usage $STAT_FILE)"
+echo "Current usage in cloud : $(get_cloud_current_usage $STAT_FILE)"
 
 # PWDSAVE=$PWD
 # cd $REFERENCE_DIR && find $TEST_FILE  \( ! -regex '.*/\..*' \) -type f -exec md5sum \{\} \; | sort -k2 > $LOG_DIR/md5sum.out.master
@@ -86,12 +88,14 @@ cd $PWDSAVE
 diff $LOG_DIR/md5sum.out.master $LOG_DIR/md5sum.out
 print_result $?
 
-# overwrite the file_a with file_b under each mount point, 18 rounds
+# file_a has 4608 bytes, file_b has 4608 bytes, overwrite file_a with file_b 18 rounds, 256 bytes each round
 echo -ne "Overwrite file_a with file_b 18 rounds   "
-for i in {1..2}
-do
-    cp $FUSE_MNT_/file_b $FUSE_MNT_/file_a
-    cp $REFERENCE_DIR/file_b $REFERENCE_DIR/file_a
+for ((i=0; i<18; i++)); do
+    # 计算偏移量
+    offset=$((i * 256))
+    # 使用 dd 复制并覆写 file_a 的偏移量处
+    dd if=$FUSE_MNT_/file_b of=$FUSE_MNT_/file_a bs=256 count=1 seek=$i conv=notrunc
+    dd if=$REFERENCE_DIR/file_b of=$REFERENCE_DIR/file_a bs=256 count=1 seek=$i conv=notrunc
 done
 
 echo -ne "Original File: Basic file content test(md5sum) file_b(after) "
@@ -114,7 +118,9 @@ print_result $?
 
 collect_stats > $STAT_FILE
 echo -e "\nCloud statistics -->"
-echo "Capacity usage in cloud : $(get_cloud_max_usage $STAT_FILE)"
+echo "Current usage in cloud : $(get_cloud_current_usage $STAT_FILE)"
+
+ls -al $S3_DIR/cloudfs
 
 #----
 #destructive test : always do this test at the end!!

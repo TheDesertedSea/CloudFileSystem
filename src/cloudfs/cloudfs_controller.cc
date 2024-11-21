@@ -125,6 +125,9 @@ int CloudfsController::set_chunkinfo(const std::string& main_path, std::vector<C
     return -1;
   }
 
+  // clear file first
+  ftruncate(fileno(file), 0);
+
   size_t num_chunks = chunks.size();
   fwrite(&num_chunks, sizeof(size_t), 1, file);
   // logger_->info("set_chunkinfo: num_chunks " + std::to_string(num_chunks));
@@ -151,6 +154,24 @@ int CloudfsController::get_chunk_idx(const std::vector<Chunk>& chunks, off_t off
   }
 
   return -1;
+}
+
+int CloudfsController::set_truncated(const std::string& path, bool truncated) {
+  auto ret = lsetxattr(path.c_str(), "user.cloudfs.truncated", &truncated, sizeof(bool), 0);
+  if(ret == -1) {
+    return -1;
+  }
+  return 0;
+}
+
+int CloudfsController::get_truncated(const std::string& path, bool& truncated) {
+  char buf[sizeof(bool)];
+  auto ret = lgetxattr(path.c_str(), "user.cloudfs.truncated", buf, sizeof(bool));
+  if(ret == -1) {
+    return -1;
+  }
+  truncated = *(bool*)buf;
+  return 0;
 }
 
 CloudfsController::CloudfsController(struct cloudfs_state *state, const std::string& host_name, std::string bucket_name, std::shared_ptr<DebugLogger> logger) 
@@ -216,6 +237,12 @@ int CloudfsController::create_file(const std::string& path, mode_t mode) {
   if(ret != 0) {
     return logger_->error("create_file: set_is_on_cloud failed");
   }
+
+  ret = set_truncated(main_path, false);
+  if(ret != 0) {
+    return logger_->error("create_file: set_truncated failed");
+  }
+
   std::vector<Chunk> chunks;
   ret = set_chunkinfo(main_path, chunks); // no chunk initially
 
@@ -492,7 +519,7 @@ CloudfsControllerDedup::CloudfsControllerDedup(struct cloudfs_state *state, cons
       std::shared_ptr<DebugLogger> logger, int window_size, int avg_seg_size, int min_seg_size, int max_seg_size):
   CloudfsController(state, host_name, std::move(bucket_name), logger), chunk_table_(state->ssd_path, logger),
   chunk_splitter_(window_size, avg_seg_size, min_seg_size, max_seg_size) { 
-    // logger_->info("CloudfsControllerDedup: window_size " + std::to_string(window_size) + ", avg_seg_size " + std::to_string(avg_seg_size) + ", min_seg_size " + std::to_string(min_seg_size) + ", max_seg_size " + std::to_string(max_seg_size));
+    logger_->debug("CloudfsControllerDedup: window_size " + std::to_string(window_size) + ", avg_seg_size " + std::to_string(avg_seg_size) + ", min_seg_size " + std::to_string(min_seg_size) + ", max_seg_size " + std::to_string(max_seg_size));
 }
 
 CloudfsControllerDedup::~CloudfsControllerDedup() {
@@ -577,6 +604,7 @@ int CloudfsControllerDedup::read_file(const std::string& path, uint64_t fd, char
 int CloudfsControllerDedup::write_file(const std::string& path, uint64_t fd, const char* buf, size_t size, off_t write_offset) {
   logger_->info("write_file: " + path + ", fd: " + std::to_string(fd) + ", size: " + std::to_string(size) + ", offset: " + std::to_string(write_offset));
   // logger_->debug("write_file: " + path + ", fd: " + std::to_string(fd) + ", size: " + std::to_string(size) + ", offset: " + std::to_string(write_offset));
+  // logger_->debug("write_file: " + path + ", fd: " + std::to_string(fd) + ", size: " + std::to_string(size) + ", offset: " + std::to_string(write_offset));
 
   auto main_path = open_files_[fd].main_path_;
   auto op_fd = open_files_[fd].op_fd_;
@@ -586,6 +614,30 @@ int CloudfsControllerDedup::write_file(const std::string& path, uint64_t fd, con
   if(ret != 0) {
     return logger_->error("write_file: get_size failed");
   }
+  // logger_->info("write_file: file_size " + std::to_string(file_size));
+
+  bool is_truncated;
+  ret = get_truncated(main_path, is_truncated);
+  if(ret != 0) {
+    return logger_->error("write_file: get_truncated failed");
+  }
+
+  if(is_truncated) {
+    // reload chunks
+    open_files_[fd].chunks_.clear();
+    ret = get_chunkinfo(main_path, open_files_[fd].chunks_);
+    if(ret != 0) {
+      return logger_->error("write_file: get_chunkinfo failed");
+    }
+    ret = set_truncated(main_path, false);
+    if(ret != 0) {
+      return logger_->error("write_file: set_truncated failed");
+    }
+  }
+
+  auto& chunks = open_files_[fd].chunks_;
+  std::vector<Chunk> new_chunks;
+  // logger_->info("write_file: original chunks count " + std::to_string(chunks.size()));
 
   int rechunk_start_idx, buffer_end_idx;
   off_t buffer_offset;
@@ -624,7 +676,7 @@ int CloudfsControllerDedup::write_file(const std::string& path, uint64_t fd, con
   buffer_len = std::max(buffer_len, (size_t)(write_offset - buffer_offset + written));
 
   if(file_size <= state_->threshold) {
-    logger_->info("write_file: success, write " + std::to_string(written) + " bytes");
+    // logger_->info("write_file: success, write " + std::to_string(written) + " bytes");
     return written;
   } else if(old_file_size <= state_->threshold) {
     // logger_->info("write_file: write cause a local file to cloud file");
@@ -632,8 +684,7 @@ int CloudfsControllerDedup::write_file(const std::string& path, uint64_t fd, con
     buffer_end_idx = -1;
   }
 
-  auto& chunks = open_files_[fd].chunks_;
-  std::vector<Chunk> new_chunks;
+
   // rechunk buffer file contents
 
   // logger_->info("write_file: rechunk_start_idx " + std::to_string(rechunk_start_idx) + ", buffer_end_idx " + std::to_string(buffer_end_idx));
@@ -650,7 +701,7 @@ int CloudfsControllerDedup::write_file(const std::string& path, uint64_t fd, con
     for(auto& c: next_chunks) {
       auto is_first = chunk_table_.Use(c.key_);
       if(is_first) {
-        // logger_->info("write_file: upload chunk(rechunk buf) start " + std::to_string(c.start_) + ", len " + std::to_string(c.len_) + ", key " + c.key_);
+        logger_->debug("write_file: upload chunk(rechunk buf) start " + std::to_string(c.start_) + ", len " + std::to_string(c.len_) + ", key " + c.key_);
         ret = buffer_controller_->upload_chunk(c.key_, op_fd, c.start_ - buffer_offset, c.len_);
       }
       new_chunks.push_back(c);
@@ -661,11 +712,12 @@ int CloudfsControllerDedup::write_file(const std::string& path, uint64_t fd, con
   if(last_chunk.len_ > 0) {
     auto is_first = chunk_table_.Use(last_chunk.key_);
     if(is_first) {
-      // logger_->info("write_file: upload chunk(rechunk buf) start " + std::to_string(last_chunk.start_) + ", len " + std::to_string(last_chunk.len_) + ", key " + last_chunk.key_);
+      logger_->debug("write_file: upload chunk(rechunk buf) start " + std::to_string(last_chunk.start_) + ", len " + std::to_string(last_chunk.len_) + ", key " + last_chunk.key_);
       ret = buffer_controller_->upload_chunk(last_chunk.key_, op_fd, last_chunk.start_ - buffer_offset, last_chunk.len_);
     }
     new_chunks.push_back(last_chunk);
   }
+  // logger_->info("write_file: get new chunks count " + std::to_string(new_chunks.size()));
 
   int release_end;
   if(buffer_end_idx != -1) {
@@ -700,7 +752,7 @@ int CloudfsControllerDedup::write_file(const std::string& path, uint64_t fd, con
           for(auto& c: next_chunks) {
             auto is_first = chunk_table_.Use(c.key_);
             if(is_first) {
-              // logger_->info("write_file: upload chunk(rechunk rest) start " + std::to_string(c.start_) + ", len " + std::to_string(c.len_) + ", key " + c.key_);
+              logger_->debug("write_file: upload chunk(rechunk rest) start " + std::to_string(c.start_) + ", len " + std::to_string(c.len_) + ", key " + c.key_);
               ret = buffer_controller_->upload_chunk(c.key_, op_fd, c.start_ - buffer_offset, c.len_);
             }
             new_chunks.push_back(c);
@@ -734,7 +786,7 @@ int CloudfsControllerDedup::write_file(const std::string& path, uint64_t fd, con
       if(last_chunk.len_ > 0) {
         auto is_first = chunk_table_.Use(last_chunk.key_);
         if(is_first) {
-          // logger_->info("write_file: upload chunk(rechunk rest) start " + std::to_string(last_chunk.start_) + ", len " + std::to_string(last_chunk.len_) + ", key " + last_chunk.key_);
+          logger_->debug("write_file: upload chunk(rechunk rest) start " + std::to_string(last_chunk.start_) + ", len " + std::to_string(last_chunk.len_) + ", key " + last_chunk.key_);
           ret = buffer_controller_->upload_chunk(last_chunk.key_, op_fd, last_chunk.start_ - buffer_offset, last_chunk.len_);
         }
         new_chunks.push_back(last_chunk);
@@ -746,8 +798,9 @@ int CloudfsControllerDedup::write_file(const std::string& path, uint64_t fd, con
     release_end = chunks.size() - 1;
   }
 
-  logger_->info("write_file: rechunk from " + std::to_string(rechunk_start_idx) + " to " + std::to_string(release_end));
+  // logger_->info("write_file: rechunk from " + std::to_string(rechunk_start_idx) + " to " + std::to_string(release_end));
   for(int i = rechunk_start_idx; i <= release_end; i++) {
+    // logger_->info("write_file: release chunk " + chunks[i].key_);
     auto is_last = chunk_table_.Release(chunks[i].key_);
     if(is_last) {
       ret = buffer_controller_->delete_object(chunks[i].key_);
@@ -800,6 +853,8 @@ int CloudfsControllerDedup::close_file(const std::string& path, uint64_t fd) {
   for(auto& chunk : chunks) {
     logger_->info("close_file: chunk start " + std::to_string(chunk.start_) + ", len " + std::to_string(chunk.len_) + ", key " + chunk.key_);
   }
+
+  // chunk_table_.Print();
 
   return 0;
 }
@@ -857,7 +912,8 @@ int CloudfsControllerDedup::unlink_file(const std::string& path) {
 }
 
 int CloudfsControllerDedup::truncate_file(const std::string& path, off_t truncate_size) {
-  logger_->info("truncate_file: " + path + ", size: " + std::to_string(truncate_size));
+  // logger_->info("truncate_file: " + path + ", size: " + std::to_string(truncate_size));
+  logger_->debug("truncate_file: " + path + ", size: " + std::to_string(truncate_size));
 
   auto main_path = state_->ssd_path + path;
   std::string buffer_path;
@@ -873,7 +929,7 @@ int CloudfsControllerDedup::truncate_file(const std::string& path, off_t truncat
   }
 
   if(truncate_size >= file_size) {
-    logger_->info("truncate_file: success");
+    // logger_->info("truncate_file: success");
     return 0;
   }
 
@@ -888,7 +944,7 @@ int CloudfsControllerDedup::truncate_file(const std::string& path, off_t truncat
       return logger_->error("truncate_file: set_size failed");
     }
 
-    logger_->info("truncate_file: success");
+    // logger_->info("truncate_file: success");
     return 0;
   }
 
@@ -901,6 +957,7 @@ int CloudfsControllerDedup::truncate_file(const std::string& path, off_t truncat
   auto op_fd = open(buffer_path.c_str(), O_RDWR);
 
   if(truncate_size <= state_->threshold) {
+    // logger_->info("truncate_file: truncate to local");
     // truncate will cause the file to be local
     auto truncate_point_idx = get_chunk_idx(chunks, truncate_size);
     // load 0 to truncate_point_idx chunk
@@ -933,15 +990,26 @@ int CloudfsControllerDedup::truncate_file(const std::string& path, off_t truncat
       return logger_->error("truncate_file: set_chunkinfo failed");
     }
 
+    ret = set_truncated(main_path, true);
+    if(ret != 0) {
+      return logger_->error("truncate_file: set_truncated failed");
+    }
+
     ret = set_size(buffer_path, truncate_size);
     if(ret != 0) {
       return logger_->error("truncate_file: set_size failed");
     }
 
+    // logger_->info("truncate_file: chunk count " + std::to_string(chunks.size()));
+    // for(auto& c: chunks) {
+    //   logger_->info("truncate_file: chunk start " + std::to_string(c.start_) + ", len " + std::to_string(c.len_) + ", key " + c.key_);
+    // }
+
     // logger_->info("truncate_file: success");
     return 0;
   }
   // file is still on cloud after truncate
+  // logger_->info("truncate_file: truncate to cloud");
 
   auto truncate_point_idx = get_chunk_idx(chunks, truncate_size);
   assert(truncate_point_idx != -1);
@@ -1010,10 +1078,20 @@ int CloudfsControllerDedup::truncate_file(const std::string& path, off_t truncat
     return logger_->error("truncate_file: set_chunkinfo failed");
   }
 
+  ret = set_truncated(main_path, true);
+  if(ret != 0) {
+    return logger_->error("truncate_file: set_truncated failed");
+  }
+
   ret = set_size(buffer_path, truncate_size);
   if(ret != 0) {
     return logger_->error("truncate_file: set_size failed");
   }
+
+  // logger_->info("truncate_file: chunk count " + std::to_string(chunks.size()));
+  // for(auto& c: chunks) {
+  //   logger_->info("truncate_file: chunk start " + std::to_string(c.start_) + ", len " + std::to_string(c.len_) + ", key " + c.key_);
+  // }
 
   // logger_->info("truncate_file: success");
   return 0;
@@ -1106,6 +1184,19 @@ int CloudfsControllerDedup::prepare_write_data(off_t offset, size_t w_size, uint
 
   auto write_start_idx = get_chunk_idx(chunks, offset);
   assert(write_start_idx != -1);
+  // if(write_start_idx > 0 
+  //   && ((int)chunks[write_start_idx - 1].len_ < state_->avg_seg_size || (int)chunks[write_start_idx - 1].len_ > state_->avg_seg_size)) {
+  //   // try to rechunk the previous chunk, since the previous chunk is too small or too large
+  //   write_start_idx--;
+  // }
+  int prev_chunk_len_sum = 0;
+  while(write_start_idx > 0) {
+    prev_chunk_len_sum += chunks[write_start_idx - 1].len_;
+    if(prev_chunk_len_sum >= state_->max_seg_size) {
+      break;
+    }
+    write_start_idx--;
+  }
 
   auto write_end_idx = get_chunk_idx(chunks, offset + w_size - 1);
   if(write_end_idx == -1) {

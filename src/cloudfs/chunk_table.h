@@ -28,4 +28,6 @@ class ChunkTable {
     bool Release(const std::string& key);
 
     void Persist();
+
+    void Print();
 };

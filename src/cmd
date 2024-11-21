@@ -24,3 +24,17 @@ cd ~/cmu15746-project2/src/tests/checkpoint_2/test_2_5
 
 cd ~/cmu15746-project2/src/tests/checkpoint_2/test_2_14
 ./test_2_14.sh
+
+cd ~/cmu15746-project2/src/tests/checkpoint_2/test_2_15
+./test_2_15.sh
+
+cd ~/cmu15746-project2/src/tests/checkpoint_2/test_2_16
+./test_2_16.sh
+
+cd ~/cmu15746-project2/src/tests/checkpoint_2/test_2_17
+./test_2_17.sh
+
+window_size 48, avg_seg_size 4096, min_seg_size 1024, max_seg_size 8192
+
+file_a: 147,456, 144 * 1024
+file_b: 18,432, 18 * 1024

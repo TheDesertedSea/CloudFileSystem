@@ -82,6 +82,10 @@ class CloudfsController {
 
     int get_chunk_idx(const std::vector<Chunk>& chunks, off_t offset);
 
+    int set_truncated(const std::string& path, bool truncated);
+
+    int get_truncated(const std::string& path, bool& truncated);
+
 };
 
 class CloudfsControllerNoDedup : public CloudfsController {

@@ -44,7 +44,11 @@ bool ChunkTable::Release(const std::string& key) {
         throw std::runtime_error("Chunk not found in table");
     }
     chunk_table_[key]--;
-    return chunk_table_[key] == 0;
+    auto is_last = chunk_table_[key] == 0;
+    if (is_last) {
+        chunk_table_.erase(key);
+    }
+    return is_last;
 }
 
 void ChunkTable::Persist() {
@@ -65,3 +69,9 @@ void ChunkTable::Persist() {
     fclose(table_file);
 }
 
+void ChunkTable::Print() {
+    for (const auto& entry : chunk_table_) {
+        // logger_->info("ChunkTable: key " + entry.first + ", count " + std::to_string(entry.second));
+        logger_->debug("ChunkTable: key " + entry.first + ", count " + std::to_string(entry.second));
+    }
+}
