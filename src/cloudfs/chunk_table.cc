@@ -40,6 +40,7 @@ bool ChunkTable::Use(const std::string& key) {
 
 bool ChunkTable::Release(const std::string& key) {
     if (chunk_table_.find(key) == chunk_table_.end()) {
+        logger_->error("ChunkTable: chunk not found in table");
         throw std::runtime_error("Chunk not found in table");
     }
     chunk_table_[key]--;

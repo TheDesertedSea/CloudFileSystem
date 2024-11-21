@@ -24,6 +24,7 @@ public:
   ~DebugLogger();
   int error(const std::string& error_str);
   void info(const std::string& info_str);
+  void debug(const std::string& debug_str);
 
   FILE* get_file();
 };
