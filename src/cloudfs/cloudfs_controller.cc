@@ -657,14 +657,14 @@ int CloudfsControllerDedup::write_file(const std::string& path, uint64_t fd, con
     buffer_end_idx = -1;
   }
 
-  // logger_->info("write_file: buffer_offset " + std::to_string(buffer_offset) + ", buffer_len " + std::to_string(buffer_len));
+  logger_->info("write_file: buffer_offset " + std::to_string(buffer_offset) + ", buffer_len " + std::to_string(buffer_len));
   auto written = pwrite(fd, buf, size, write_offset - buffer_offset);
   if(written < 0) {
     return logger_->error("write_file: pwrite failed");
   }
 
   ssize_t len_increase = write_offset + written - buffer_offset - buffer_len;
-  // logger_->info("write_file: len_increase " + std::to_string(len_increase));
+  logger_->info("write_file: len_increase " + std::to_string(len_increase));
   auto old_file_size = file_size;
   if(len_increase > 0) {
     file_size += len_increase;
@@ -676,10 +676,10 @@ int CloudfsControllerDedup::write_file(const std::string& path, uint64_t fd, con
   buffer_len = std::max(buffer_len, (size_t)(write_offset - buffer_offset + written));
 
   if(file_size <= state_->threshold) {
-    // logger_->info("write_file: success, write " + std::to_string(written) + " bytes");
+    logger_->info("write_file: success, write " + std::to_string(written) + " bytes");
     return written;
   } else if(old_file_size <= state_->threshold) {
-    // logger_->info("write_file: write cause a local file to cloud file");
+    logger_->info("write_file: write cause a local file to cloud file");
     rechunk_start_idx = 0;
     buffer_end_idx = -1;
   }
@@ -687,7 +687,7 @@ int CloudfsControllerDedup::write_file(const std::string& path, uint64_t fd, con
 
   // rechunk buffer file contents
 
-  // logger_->info("write_file: rechunk_start_idx " + std::to_string(rechunk_start_idx) + ", buffer_end_idx " + std::to_string(buffer_end_idx));
+  logger_->info("write_file: rechunk_start_idx " + std::to_string(rechunk_start_idx) + ", buffer_end_idx " + std::to_string(buffer_end_idx));
   // logger_->info("write_file: buffer_offset " + std::to_string(buffer_offset) + ", buffer_len " + std::to_string(buffer_len));
   chunk_splitter_.init(buffer_offset);
   char rechunk_buf[RECHUNK_BUF_SIZE];
@@ -708,31 +708,51 @@ int CloudfsControllerDedup::write_file(const std::string& path, uint64_t fd, con
     }
     read_p += read_cnt;
   }
-  auto last_chunk = chunk_splitter_.get_chunk_last();
-  if(last_chunk.len_ > 0) {
-    auto is_first = chunk_table_.Use(last_chunk.key_);
-    if(is_first) {
-      logger_->debug("write_file: upload chunk(rechunk buf) start " + std::to_string(last_chunk.start_) + ", len " + std::to_string(last_chunk.len_) + ", key " + last_chunk.key_);
-      ret = buffer_controller_->upload_chunk(last_chunk.key_, op_fd, last_chunk.start_ - buffer_offset, last_chunk.len_);
-    }
-    new_chunks.push_back(last_chunk);
-  }
+  // auto last_chunk = chunk_splitter_.get_chunk_last();
+  // if(last_chunk.len_ > 0) {
+  //   auto is_first = chunk_table_.Use(last_chunk.key_);
+  //   if(is_first) {
+  //     logger_->debug("write_file: upload chunk(rechunk buf) start " + std::to_string(last_chunk.start_) + ", len " + std::to_string(last_chunk.len_) + ", key " + last_chunk.key_);
+  //     ret = buffer_controller_->upload_chunk(last_chunk.key_, op_fd, last_chunk.start_ - buffer_offset, last_chunk.len_);
+  //   }
+  //   new_chunks.push_back(last_chunk);
+  // }
   // logger_->info("write_file: get new chunks count " + std::to_string(new_chunks.size()));
 
   int release_end;
   if(buffer_end_idx != -1) {
     // write within the file size
-    if(new_chunks.back().start_ + new_chunks.back().len_ == chunks[buffer_end_idx].start_ + chunks[buffer_end_idx].len_) {
-      // logger_->info("write_file: same boundary, no need to rechunk the rest of the file");
+    if(new_chunks.size() > 0 && new_chunks.back().start_ + new_chunks.back().len_ == chunks[buffer_end_idx].start_ + chunks[buffer_end_idx].len_) {
+      logger_->info("write_file: same boundary, no need to rechunk the rest of the file");
       // no need to rechunk the rest of the file
       release_end = buffer_end_idx;
     } else {
-      // logger_->info("write_file: rechunk the rest of the file");
+      // first copy the remaining part of the buffer file
+      logger_->info("write_file: rechunk the rest of the file");
+      size_t remain_len = buffer_len;
+      ssize_t read_cnt;
+      ssize_t write_cnt;
+      if(new_chunks.size() > 0) {
+        remain_len = buffer_len - new_chunks.back().start_ - new_chunks.back().len_;
+
+        read_cnt = pread(op_fd, rechunk_buf, remain_len, new_chunks.back().start_ + new_chunks.back().len_ - buffer_offset);
+        if(read_cnt != (ssize_t)remain_len) {
+          return logger_->error("write_file: read remaining not expected length");
+        }
+
+        // clear and write remaining at the beginning of the buffer file
+        buffer_controller_->clear_file(op_fd);
+        write_cnt = pwrite(op_fd, rechunk_buf, remain_len, 0);
+        if(write_cnt != (ssize_t)remain_len) {
+          return logger_->error("write_file: write remaining not expected length");
+        }
+        buffer_offset = new_chunks.back().start_;
+      }
+      
+      // logger_->info("write_file: remaining length " + std::to_string(remain_len) + ", buffer_offset " + std::to_string(buffer_offset));
       // rechunk the rest of the file
       release_end = chunks.size() - 1;
       auto cur_chunk_idx = buffer_end_idx + 1;
-      size_t remain_len = 0; // remaining length of last chunk
-      buffer_controller_->clear_file(op_fd);
       while(cur_chunk_idx < (int)chunks.size()) {
         auto& chunk = chunks[cur_chunk_idx];
         auto ret = buffer_controller_->download_chunk(chunk.key_, op_fd, remain_len);
@@ -741,8 +761,8 @@ int CloudfsControllerDedup::write_file(const std::string& path, uint64_t fd, con
         }
         buffer_offset = chunk.start_ - remain_len;
 
-        size_t used_len = 0;
-        read_p = 0;
+        size_t used_len = 0; // do not include the remaining part
+        read_p = remain_len; // read after the remaining part
         while(read_p < (ssize_t)chunk.len_) {
           auto read_cnt = pread(op_fd, rechunk_buf, RECHUNK_BUF_SIZE, read_p);
           if(read_cnt < 0) {
@@ -756,7 +776,7 @@ int CloudfsControllerDedup::write_file(const std::string& path, uint64_t fd, con
               ret = buffer_controller_->upload_chunk(c.key_, op_fd, c.start_ - buffer_offset, c.len_);
             }
             new_chunks.push_back(c);
-            used_len += c.len_;
+            used_len += c.len_; // chunk here may include the remaining part
           }
           read_p += read_cnt;
         }
@@ -769,20 +789,20 @@ int CloudfsControllerDedup::write_file(const std::string& path, uint64_t fd, con
         cur_chunk_idx++;
 
         remain_len = chunk.len_ + remain_len - used_len; // remaining length of this chunk
-        auto read_cnt = pread(op_fd, rechunk_buf, remain_len, used_len);
+        read_cnt = pread(op_fd, rechunk_buf, remain_len, used_len);
         if(read_cnt != (ssize_t)remain_len) {
           return logger_->error("write_file: read remaining not expected length");
         }
 
         // clear and write remaining at the beginning of the buffer file
         buffer_controller_->clear_file(op_fd);
-        auto write_cnt = pwrite(op_fd, rechunk_buf, remain_len, 0);
+        write_cnt = pwrite(op_fd, rechunk_buf, remain_len, 0);
         if(write_cnt != (ssize_t)remain_len) {
           return logger_->error("write_file: write remaining not expected length");
         }
       }
 
-      last_chunk = chunk_splitter_.get_chunk_last();
+      auto last_chunk = chunk_splitter_.get_chunk_last();
       if(last_chunk.len_ > 0) {
         auto is_first = chunk_table_.Use(last_chunk.key_);
         if(is_first) {
@@ -794,13 +814,23 @@ int CloudfsControllerDedup::write_file(const std::string& path, uint64_t fd, con
     }
   } else {
     // write causes file size increase
-    // logger_->info("write_file: no rechunk rest, write causes file size increase");
+    logger_->info("write_file: no rechunk rest, write causes file size increase");
+    auto last_chunk = chunk_splitter_.get_chunk_last();
+    if(last_chunk.len_ > 0) {
+      auto is_first = chunk_table_.Use(last_chunk.key_);
+      if(is_first) {
+        logger_->debug("write_file: upload chunk(rechunk rest) start " + std::to_string(last_chunk.start_) + ", len " + std::to_string(last_chunk.len_) + ", key " + last_chunk.key_);
+        ret = buffer_controller_->upload_chunk(last_chunk.key_, op_fd, last_chunk.start_ - buffer_offset, last_chunk.len_);
+      }
+      new_chunks.push_back(last_chunk);
+    }
+
     release_end = chunks.size() - 1;
   }
 
-  // logger_->info("write_file: rechunk from " + std::to_string(rechunk_start_idx) + " to " + std::to_string(release_end));
+  logger_->info("write_file: rechunk from " + std::to_string(rechunk_start_idx) + " to " + std::to_string(release_end));
   for(int i = rechunk_start_idx; i <= release_end; i++) {
-    // logger_->info("write_file: release chunk " + chunks[i].key_);
+    logger_->info("write_file: release chunk " + chunks[i].key_);
     auto is_last = chunk_table_.Release(chunks[i].key_);
     if(is_last) {
       ret = buffer_controller_->delete_object(chunks[i].key_);
@@ -828,7 +858,7 @@ int CloudfsControllerDedup::write_file(const std::string& path, uint64_t fd, con
     return logger_->error("write_file: set_chunkinfo failed");
   }
 
-  // logger_->info("write_file: success, write " + std::to_string(written) + " bytes");
+  logger_->info("write_file: success, write " + std::to_string(written) + " bytes");
   return written;
 }
 
