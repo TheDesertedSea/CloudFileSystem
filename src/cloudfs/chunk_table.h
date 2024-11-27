@@ -7,6 +7,12 @@
 
 class ChunkTable {
 
+  struct RefCounts {
+    int ref_count_;
+    int snapshot_ref_count_;
+    RefCounts() : ref_count_(0), snapshot_ref_count_(0) {}
+    RefCounts(int ref_count, int snapshot_ref_count) : ref_count_(ref_count), snapshot_ref_count_(snapshot_ref_count) {}
+  };
 
   std::string ssd_path_;
 
@@ -15,7 +21,7 @@ class ChunkTable {
 
   static const std::string TABLE_FILE_NAME;
 
-  std::unordered_map<std::string, int> chunk_table_;
+  std::unordered_map<std::string, RefCounts> chunk_table_;
 
   public:
     ChunkTable(const std::string& ssd_path, std::shared_ptr<DebugLogger> logger);
@@ -30,4 +36,10 @@ class ChunkTable {
     void Persist();
 
     void Print();
+
+    void Snapshot(FILE* snapshot_file);
+
+    void Restore(FILE* snapshot_file);
+
+    void DeleteSnapshot(FILE* snapshot_file);
 };

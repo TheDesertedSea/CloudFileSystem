@@ -175,7 +175,7 @@ int CloudfsController::get_truncated(const std::string& path, bool& truncated) {
 }
 
 CloudfsController::CloudfsController(struct cloudfs_state *state, const std::string& host_name, std::string bucket_name, std::shared_ptr<DebugLogger> logger) 
-  : state_(state), bucket_name_(std::move(bucket_name)), logger_(std::move(logger)), buffer_controller_(std::make_shared<BufferController>(host_name, bucket_name_, logger_)) {
+  : state_(state), bucket_name_(std::move(bucket_name)), logger_(std::move(logger)), buffer_controller_(std::make_shared<BufferController>(host_name, bucket_name_, logger_)), chunk_table_(state->ssd_path, logger) {
 
 }
 
@@ -517,7 +517,7 @@ const size_t CloudfsControllerDedup::RECHUNK_BUF_SIZE = 4 * 1024;
 
 CloudfsControllerDedup::CloudfsControllerDedup(struct cloudfs_state *state, const std::string& host_name, std::string bucket_name, 
       std::shared_ptr<DebugLogger> logger, int window_size, int avg_seg_size, int min_seg_size, int max_seg_size):
-  CloudfsController(state, host_name, std::move(bucket_name), logger), chunk_table_(state->ssd_path, logger),
+  CloudfsController(state, host_name, std::move(bucket_name), logger),
   chunk_splitter_(window_size, avg_seg_size, min_seg_size, max_seg_size) { 
     logger_->debug("CloudfsControllerDedup: window_size " + std::to_string(window_size) + ", avg_seg_size " + std::to_string(avg_seg_size) + ", min_seg_size " + std::to_string(min_seg_size) + ", max_seg_size " + std::to_string(max_seg_size));
 }
@@ -708,122 +708,123 @@ int CloudfsControllerDedup::write_file(const std::string& path, uint64_t fd, con
     }
     read_p += read_cnt;
   }
-  // auto last_chunk = chunk_splitter_.get_chunk_last();
-  // if(last_chunk.len_ > 0) {
-  //   auto is_first = chunk_table_.Use(last_chunk.key_);
-  //   if(is_first) {
-  //     logger_->debug("write_file: upload chunk(rechunk buf) start " + std::to_string(last_chunk.start_) + ", len " + std::to_string(last_chunk.len_) + ", key " + last_chunk.key_);
-  //     ret = buffer_controller_->upload_chunk(last_chunk.key_, op_fd, last_chunk.start_ - buffer_offset, last_chunk.len_);
-  //   }
-  //   new_chunks.push_back(last_chunk);
-  // }
-  // logger_->info("write_file: get new chunks count " + std::to_string(new_chunks.size()));
+  auto last_chunk = chunk_splitter_.get_chunk_last();
+  if(last_chunk.len_ > 0) {
+    auto is_first = chunk_table_.Use(last_chunk.key_);
+    if(is_first) {
+      logger_->debug("write_file: upload chunk(rechunk buf) start " + std::to_string(last_chunk.start_) + ", len " + std::to_string(last_chunk.len_) + ", key " + last_chunk.key_);
+      ret = buffer_controller_->upload_chunk(last_chunk.key_, op_fd, last_chunk.start_ - buffer_offset, last_chunk.len_);
+    }
+    new_chunks.push_back(last_chunk);
+  }
+  logger_->info("write_file: get new chunks count " + std::to_string(new_chunks.size()));
 
   int release_end;
   if(buffer_end_idx != -1) {
     // write within the file size
-    if(new_chunks.size() > 0 && new_chunks.back().start_ + new_chunks.back().len_ == chunks[buffer_end_idx].start_ + chunks[buffer_end_idx].len_) {
-      logger_->info("write_file: same boundary, no need to rechunk the rest of the file");
-      // no need to rechunk the rest of the file
-      release_end = buffer_end_idx;
-    } else {
-      // first copy the remaining part of the buffer file
-      logger_->info("write_file: rechunk the rest of the file");
-      size_t remain_len = buffer_len;
-      ssize_t read_cnt;
-      ssize_t write_cnt;
-      if(new_chunks.size() > 0) {
-        remain_len = buffer_len - new_chunks.back().start_ - new_chunks.back().len_;
+    release_end = buffer_end_idx;
+    // if(new_chunks.size() > 0 && new_chunks.back().start_ + new_chunks.back().len_ == chunks[buffer_end_idx].start_ + chunks[buffer_end_idx].len_) {
+    //   logger_->info("write_file: same boundary, no need to rechunk the rest of the file");
+    //   // no need to rechunk the rest of the file
+    //   release_end = buffer_end_idx;
+    // } else {
+    //   // first copy the remaining part of the buffer file
+    //   logger_->info("write_file: rechunk the rest of the file");
+    //   size_t remain_len = buffer_len;
+    //   ssize_t read_cnt;
+    //   ssize_t write_cnt;
+    //   if(new_chunks.size() > 0) {
+    //     remain_len = buffer_len - new_chunks.back().start_ - new_chunks.back().len_;
 
-        read_cnt = pread(op_fd, rechunk_buf, remain_len, new_chunks.back().start_ + new_chunks.back().len_ - buffer_offset);
-        if(read_cnt != (ssize_t)remain_len) {
-          return logger_->error("write_file: read remaining not expected length");
-        }
+    //     read_cnt = pread(op_fd, rechunk_buf, remain_len, new_chunks.back().start_ + new_chunks.back().len_ - buffer_offset);
+    //     if(read_cnt != (ssize_t)remain_len) {
+    //       return logger_->error("write_file: read remaining not expected length");
+    //     }
 
-        // clear and write remaining at the beginning of the buffer file
-        buffer_controller_->clear_file(op_fd);
-        write_cnt = pwrite(op_fd, rechunk_buf, remain_len, 0);
-        if(write_cnt != (ssize_t)remain_len) {
-          return logger_->error("write_file: write remaining not expected length");
-        }
-        buffer_offset = new_chunks.back().start_;
-      }
+    //     // clear and write remaining at the beginning of the buffer file
+    //     buffer_controller_->clear_file(op_fd);
+    //     write_cnt = pwrite(op_fd, rechunk_buf, remain_len, 0);
+    //     if(write_cnt != (ssize_t)remain_len) {
+    //       return logger_->error("write_file: write remaining not expected length");
+    //     }
+    //     buffer_offset = new_chunks.back().start_;
+    //   }
       
-      // logger_->info("write_file: remaining length " + std::to_string(remain_len) + ", buffer_offset " + std::to_string(buffer_offset));
-      // rechunk the rest of the file
-      release_end = chunks.size() - 1;
-      auto cur_chunk_idx = buffer_end_idx + 1;
-      while(cur_chunk_idx < (int)chunks.size()) {
-        auto& chunk = chunks[cur_chunk_idx];
-        auto ret = buffer_controller_->download_chunk(chunk.key_, op_fd, remain_len);
-        if(ret != 0) {
-          return logger_->error("write_file: download_chunk(rechunk rest) failed");
-        }
-        buffer_offset = chunk.start_ - remain_len;
+    //   // logger_->info("write_file: remaining length " + std::to_string(remain_len) + ", buffer_offset " + std::to_string(buffer_offset));
+    //   // rechunk the rest of the file
+    //   release_end = chunks.size() - 1;
+    //   auto cur_chunk_idx = buffer_end_idx + 1;
+    //   while(cur_chunk_idx < (int)chunks.size()) {
+    //     auto& chunk = chunks[cur_chunk_idx];
+    //     auto ret = buffer_controller_->download_chunk(chunk.key_, op_fd, remain_len);
+    //     if(ret != 0) {
+    //       return logger_->error("write_file: download_chunk(rechunk rest) failed");
+    //     }
+    //     buffer_offset = chunk.start_ - remain_len;
 
-        size_t used_len = 0; // do not include the remaining part
-        read_p = remain_len; // read after the remaining part
-        while(read_p < (ssize_t)chunk.len_) {
-          auto read_cnt = pread(op_fd, rechunk_buf, RECHUNK_BUF_SIZE, read_p);
-          if(read_cnt < 0) {
-            return logger_->error("write_file: pread(rechunk rest) failed");
-          }
-          auto next_chunks = chunk_splitter_.get_chunks_next(rechunk_buf, read_cnt);
-          for(auto& c: next_chunks) {
-            auto is_first = chunk_table_.Use(c.key_);
-            if(is_first) {
-              logger_->debug("write_file: upload chunk(rechunk rest) start " + std::to_string(c.start_) + ", len " + std::to_string(c.len_) + ", key " + c.key_);
-              ret = buffer_controller_->upload_chunk(c.key_, op_fd, c.start_ - buffer_offset, c.len_);
-            }
-            new_chunks.push_back(c);
-            used_len += c.len_; // chunk here may include the remaining part
-          }
-          read_p += read_cnt;
-        }
+    //     size_t used_len = 0; // do not include the remaining part
+    //     read_p = remain_len; // read after the remaining part
+    //     while(read_p < (ssize_t)chunk.len_) {
+    //       auto read_cnt = pread(op_fd, rechunk_buf, RECHUNK_BUF_SIZE, read_p);
+    //       if(read_cnt < 0) {
+    //         return logger_->error("write_file: pread(rechunk rest) failed");
+    //       }
+    //       auto next_chunks = chunk_splitter_.get_chunks_next(rechunk_buf, read_cnt);
+    //       for(auto& c: next_chunks) {
+    //         auto is_first = chunk_table_.Use(c.key_);
+    //         if(is_first) {
+    //           logger_->debug("write_file: upload chunk(rechunk rest) start " + std::to_string(c.start_) + ", len " + std::to_string(c.len_) + ", key " + c.key_);
+    //           ret = buffer_controller_->upload_chunk(c.key_, op_fd, c.start_ - buffer_offset, c.len_);
+    //         }
+    //         new_chunks.push_back(c);
+    //         used_len += c.len_; // chunk here may include the remaining part
+    //       }
+    //       read_p += read_cnt;
+    //     }
 
-        if(new_chunks.back().start_ + new_chunks.back().len_ == chunks[cur_chunk_idx].start_ + chunks[cur_chunk_idx].len_) {
-          // no need to rechunk more
-          release_end = cur_chunk_idx;
-          break;
-        }
-        cur_chunk_idx++;
+    //     if(new_chunks.back().start_ + new_chunks.back().len_ == chunks[cur_chunk_idx].start_ + chunks[cur_chunk_idx].len_) {
+    //       // no need to rechunk more
+    //       release_end = cur_chunk_idx;
+    //       break;
+    //     }
+    //     cur_chunk_idx++;
 
-        remain_len = chunk.len_ + remain_len - used_len; // remaining length of this chunk
-        read_cnt = pread(op_fd, rechunk_buf, remain_len, used_len);
-        if(read_cnt != (ssize_t)remain_len) {
-          return logger_->error("write_file: read remaining not expected length");
-        }
+    //     remain_len = chunk.len_ + remain_len - used_len; // remaining length of this chunk
+    //     read_cnt = pread(op_fd, rechunk_buf, remain_len, used_len);
+    //     if(read_cnt != (ssize_t)remain_len) {
+    //       return logger_->error("write_file: read remaining not expected length");
+    //     }
 
-        // clear and write remaining at the beginning of the buffer file
-        buffer_controller_->clear_file(op_fd);
-        write_cnt = pwrite(op_fd, rechunk_buf, remain_len, 0);
-        if(write_cnt != (ssize_t)remain_len) {
-          return logger_->error("write_file: write remaining not expected length");
-        }
-      }
+    //     // clear and write remaining at the beginning of the buffer file
+    //     buffer_controller_->clear_file(op_fd);
+    //     write_cnt = pwrite(op_fd, rechunk_buf, remain_len, 0);
+    //     if(write_cnt != (ssize_t)remain_len) {
+    //       return logger_->error("write_file: write remaining not expected length");
+    //     }
+    //   }
 
-      auto last_chunk = chunk_splitter_.get_chunk_last();
-      if(last_chunk.len_ > 0) {
-        auto is_first = chunk_table_.Use(last_chunk.key_);
-        if(is_first) {
-          logger_->debug("write_file: upload chunk(rechunk rest) start " + std::to_string(last_chunk.start_) + ", len " + std::to_string(last_chunk.len_) + ", key " + last_chunk.key_);
-          ret = buffer_controller_->upload_chunk(last_chunk.key_, op_fd, last_chunk.start_ - buffer_offset, last_chunk.len_);
-        }
-        new_chunks.push_back(last_chunk);
-      }
-    }
+    //   auto last_chunk = chunk_splitter_.get_chunk_last();
+    //   if(last_chunk.len_ > 0) {
+    //     auto is_first = chunk_table_.Use(last_chunk.key_);
+    //     if(is_first) {
+    //       logger_->debug("write_file: upload chunk(rechunk rest) start " + std::to_string(last_chunk.start_) + ", len " + std::to_string(last_chunk.len_) + ", key " + last_chunk.key_);
+    //       ret = buffer_controller_->upload_chunk(last_chunk.key_, op_fd, last_chunk.start_ - buffer_offset, last_chunk.len_);
+    //     }
+    //     new_chunks.push_back(last_chunk);
+    //   }
+    // }
   } else {
     // write causes file size increase
     logger_->info("write_file: no rechunk rest, write causes file size increase");
-    auto last_chunk = chunk_splitter_.get_chunk_last();
-    if(last_chunk.len_ > 0) {
-      auto is_first = chunk_table_.Use(last_chunk.key_);
-      if(is_first) {
-        logger_->debug("write_file: upload chunk(rechunk rest) start " + std::to_string(last_chunk.start_) + ", len " + std::to_string(last_chunk.len_) + ", key " + last_chunk.key_);
-        ret = buffer_controller_->upload_chunk(last_chunk.key_, op_fd, last_chunk.start_ - buffer_offset, last_chunk.len_);
-      }
-      new_chunks.push_back(last_chunk);
-    }
+    // auto last_chunk = chunk_splitter_.get_chunk_last();
+    // if(last_chunk.len_ > 0) {
+    //   auto is_first = chunk_table_.Use(last_chunk.key_);
+    //   if(is_first) {
+    //     logger_->debug("write_file: upload chunk(rechunk rest) start " + std::to_string(last_chunk.start_) + ", len " + std::to_string(last_chunk.len_) + ", key " + last_chunk.key_);
+    //     ret = buffer_controller_->upload_chunk(last_chunk.key_, op_fd, last_chunk.start_ - buffer_offset, last_chunk.len_);
+    //   }
+    //   new_chunks.push_back(last_chunk);
+    // }
 
     release_end = chunks.size() - 1;
   }
@@ -1214,17 +1215,21 @@ int CloudfsControllerDedup::prepare_write_data(off_t offset, size_t w_size, uint
 
   auto write_start_idx = get_chunk_idx(chunks, offset);
   assert(write_start_idx != -1);
-  
-  // read previous chunks until get max_seg_size(to compact the chunks, avoid many small chunks due to many small writes)
-  int prev_chunk_len_sum = 0;
-  while(write_start_idx > 0) {
-    prev_chunk_len_sum += chunks[write_start_idx - 1].len_;
-    if(prev_chunk_len_sum >= state_->max_seg_size) {
-      // has collected enough data
-      break;
-    }
+  if(write_start_idx > 0) {
     write_start_idx--;
   }
+
+
+  // // read previous chunks until get max_seg_size(to compact the chunks, avoid many small chunks due to many small writes)
+  // int prev_chunk_len_sum = 0;
+  // while(write_start_idx > 0) {
+  //   prev_chunk_len_sum += chunks[write_start_idx - 1].len_;
+  //   if(prev_chunk_len_sum >= state_->max_seg_size) {
+  //     // has collected enough data
+  //     break;
+  //   }
+  //   write_start_idx--;
+  // }
 
   auto write_end_idx = get_chunk_idx(chunks, offset + w_size - 1);
   if(write_end_idx == -1) {

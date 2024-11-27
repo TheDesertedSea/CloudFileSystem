@@ -23,6 +23,8 @@
 #include "cloudfs.h"
 #include "util.h"
 #include "buffer_file.h"
+#include "snapshot.h"
+#include "snapshot-api.h"
 
 #define UNUSED __attribute__((unused))
 
@@ -32,10 +34,12 @@ static const char* bukcet_name = "cloudfs";
 
 static const std::string log_path = "/tmp/cloudfs.log";
 
+static std::string snapshot_stub_path;
+
 static std::shared_ptr<DebugLogger> logger_;
 
-static std::unique_ptr<CloudfsController> controller_;
-
+static std::shared_ptr<CloudfsController> controller_;
+static std::unique_ptr<SnapshotController> snapshot_controller_;
 /*
  * Initializes the FUSE file system (cloudfs) by checking if the mount points
  * are valid, and if all is well, it mounts the file system ready for usage.
@@ -47,11 +51,22 @@ void *cloudfs_init(struct fuse_conn_info *conn UNUSED)
   logger_ = std::make_shared<DebugLogger>(log_path);
   if(state_.no_dedup) {
     logger_->info("cloudfs_init: no dedup");
-    controller_ = std::unique_ptr<CloudfsController>(new CloudfsControllerNoDedup(&state_, state_.hostname, bukcet_name, logger_));
+    controller_ = std::make_shared<CloudfsControllerNoDedup>(&state_, state_.hostname, bukcet_name, logger_);
   } else {
     logger_->info("cloudfs_init: dedup");
-    controller_ = std::unique_ptr<CloudfsController>(new CloudfsControllerDedup(&state_, state_.hostname, bukcet_name, logger_,
-      state_.rabin_window_size, state_.avg_seg_size, state_.min_seg_size, state_.max_seg_size));
+    controller_ = std::make_shared<CloudfsControllerDedup>(&state_, state_.hostname, bukcet_name, logger_,
+      state_.rabin_window_size, state_.avg_seg_size, state_.min_seg_size, state_.max_seg_size);
+  }
+  snapshot_controller_ = std::unique_ptr<SnapshotController>(new SnapshotController(&state_, logger_, controller_));
+
+  // create .snapshot file, read-only
+  snapshot_stub_path = std::string(state_.ssd_path) + "/.snapshot";
+  auto ret = open(snapshot_stub_path.c_str(), O_CREAT | O_RDONLY, 0777);
+  if(ret < 0) {
+    if(errno != EEXIST) {
+      logger_->error("cloudfs_init: create .snapshot directory failed");
+      return NULL;
+    }
   }
   return NULL;
 }
@@ -62,10 +77,25 @@ void cloudfs_destroy(void *data UNUSED) {
 
 int cloudfs_getattr(const char *path, struct stat *statbuf)
 {
+  if(strcmp(path, "/.snapshot") == 0) {
+    auto ret = lstat(snapshot_stub_path.c_str(), statbuf);
+    if(ret < 0) {
+      return logger_->error("getattr: failed");
+    }
+    return 0;
+  }
   return controller_->stat_file(std::string(path), statbuf);
 }
 
 int cloudfs_getxattr(const char* path, const char* attr_name, char* buf, size_t size) {
+  if(strcmp(path, "/.snapshot") == 0) {
+    auto ret = lgetxattr(snapshot_stub_path.c_str(), attr_name, buf, size);
+    if(ret < 0) {
+      return logger_->error("getxattr: failed");
+    }
+    return ret;
+  }
+
   auto ssd_path = state_.ssd_path + std::string(path);
   // logger_->info("getxattr: " + ssd_path + " attr_name = " + std::string(attr_name));
   
@@ -79,6 +109,11 @@ int cloudfs_getxattr(const char* path, const char* attr_name, char* buf, size_t 
 }
 
 int cloudfs_setxattr(const char* path, const char* attr_name, const char* attr_value, size_t size, int flags) {
+  if(strcmp(path, "/.snapshot") == 0) {
+    errno = EACCES;
+    return logger_->error("setxattr: .snapshot directory is read-only");
+  }
+
   auto ssd_path = state_.ssd_path + std::string(path);
   // logger_->info("setxattr: " + ssd_path + " attr_name = " + std::string(attr_name) + " size = " + std::to_string(size));
   
@@ -93,6 +128,11 @@ int cloudfs_setxattr(const char* path, const char* attr_name, const char* attr_v
 
 int cloudfs_mkdir(const char *path, mode_t mode)
 {
+  if(strcmp(path, "/.snapshot") == 0) {
+    errno = EEXIST;
+    return logger_->error("mkdir: .snapshot directory cannot be created");
+  }
+
   auto ssd_path = state_.ssd_path + std::string(path);
   // logger_->info("mkdir: " + ssd_path + " mode = " + std::to_string(mode));
 
@@ -107,6 +147,11 @@ int cloudfs_mkdir(const char *path, mode_t mode)
 
 int cloudfs_mknod(const char *path, mode_t mode, dev_t dev)
 {
+  if(strcmp(path, "/.snapshot") == 0) {
+    errno = EEXIST;
+    return logger_->error("mknod: .snapshot directory cannot be created");
+  }
+
   auto ssd_path = state_.ssd_path + std::string(path);
   // logger_->info("mknod: " + ssd_path + " mode = " + std::to_string(mode) + " dev = " + std::to_string(dev));
 
@@ -121,6 +166,11 @@ int cloudfs_mknod(const char *path, mode_t mode, dev_t dev)
 
 int cloudfs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 {
+  if(strcmp(path, "/.snapshot") == 0) {
+    errno = EEXIST;
+    return logger_->error("create: .snapshot directory cannot be created");
+  }
+
   auto ret = controller_->create_file(std::string(path), mode);
   if(ret != 0) {
     return logger_->error("create: failed");
@@ -131,23 +181,57 @@ int cloudfs_create(const char *path, mode_t mode, struct fuse_file_info *fi)
 
 int cloudfs_open(const char *path, struct fuse_file_info *fi)
 {
+  if(strcmp(path, "/.snapshot") == 0) {
+    // only allow read-only access to .snapshot directory
+    if((fi->flags & O_ACCMODE) != O_RDONLY) {
+      errno = EACCES;
+      return logger_->error("open: .snapshot directory is read-only");
+    }
+
+    auto ret = open(snapshot_stub_path.c_str(), fi->flags);
+    if(ret < 0) {
+      return logger_->error("open: failed");
+    }
+    fi->fh = ret;
+    return 0;
+  }
+
   return controller_->open_file(std::string(path), fi->flags, &fi->fh);
 }
 
 int cloudfs_read(const char *path, char *buf, size_t count, off_t offset, struct fuse_file_info *fi)
 {
+  if(strcmp(path, "/.snapshot") == 0) {
+    auto ret = pread(fi->fh, buf, count, offset);
+    if(ret < 0) {
+      return logger_->error("read: failed");
+    }
+    return ret;
+  }
   return controller_->read_file(std::string(path), fi->fh, buf, count, offset);
 }
 
 int cloud_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fi) {
+  if(strcmp(path, "/.snapshot") == 0) {
+    errno = EACCES;
+    return logger_->error("write: .snapshot directory is read-only");
+  }
   return controller_->write_file(std::string(path), fi->fh, buf, size, offset);
 }
 
 int cloud_release(const char *path, struct fuse_file_info *fi) {
+  if(strcmp(path, "/.snapshot") == 0) {
+    auto ret = close(fi->fh);
+    if(ret < 0) {
+      return logger_->error("release: failed");
+    }
+    return 0;
+  }
   return controller_->close_file(std::string(path), fi->fh);
 }
 
 int cloud_opendir(const char *path, struct fuse_file_info *fi) {
+
   auto ssd_path = state_.ssd_path + std::string(path);
   // logger_->info("opendir: " + ssd_path);
 
@@ -184,11 +268,31 @@ int cloud_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t off
     }
   } while((entry = readdir(dir)) != NULL);
 
+  if(strcmp(path, "/") == 0) {
+    // add .snapshot to the directory
+    if(filler(buf, ".snapshot", NULL, 0) != 0) {
+      return logger_->error("readdir: filler failed");
+    }
+  }
+
   // logger_->info("readdir: success");
   return 0;
 }
 
 int cloud_access(const char *path, int mask) {
+  if(strcmp(path, "/.snapshot") == 0) {
+    // only allow read-only access to .snapshot directory
+    if((mask & O_ACCMODE) != O_RDONLY) {
+      errno = EACCES;
+      return logger_->error("access: .snapshot directory is read-only");
+    }
+    auto ret = access(snapshot_stub_path.c_str(), mask);
+    if(ret < 0) {
+      return logger_->error("access: failed");
+    }
+    return 0;
+  }
+
   // logger_->info("access: " + std::string(path) + " mask = " + std::to_string(mask));
 
   auto ssd_path = state_.ssd_path + std::string(path);
@@ -202,6 +306,11 @@ int cloud_access(const char *path, int mask) {
 }
 
 int cloud_utimens(const char *path, const struct timespec tv[2]) {
+  if(strcmp(path, "/.snapshot") == 0) {
+    errno = EACCES;
+    return logger_->error("utimens: .snapshot directory is read-only");
+  }
+
   auto ssd_path = state_.ssd_path + std::string(path);
   // logger_->info("utimens: " + ssd_path + " atime = " + std::to_string(tv[0].tv_sec) + " mtime = " + std::to_string(tv[1].tv_sec));
 
@@ -215,6 +324,12 @@ int cloud_utimens(const char *path, const struct timespec tv[2]) {
 }
 
 int cloud_chmod(const char *path, mode_t mode) {
+  if(strcmp(path, "/.snapshot") == 0) {
+    // cannot change the mode of .snapshot directory
+    errno = EACCES;
+    return logger_->error("chmod: .snapshot directory is read-only");
+  }
+
   auto ssd_path = state_.ssd_path + std::string(path);
   // logger_->info("chmod: " + ssd_path + " mode = " + std::to_string(mode));
 
@@ -228,6 +343,11 @@ int cloud_chmod(const char *path, mode_t mode) {
 }
 
 int cloud_link(const char* path, const char* newpath) {
+  if(strcmp(path, "/.snapshot") == 0) {
+    errno = EACCES;
+    return logger_->error("link: .snapshot directory is read-only");
+  }
+
   auto ssd_path = state_.ssd_path + std::string(path);
   auto new_ssd_path = state_.ssd_path + std::string(newpath);
   // logger_->info("link: " + ssd_path + " -> " + new_ssd_path);
@@ -242,6 +362,11 @@ int cloud_link(const char* path, const char* newpath) {
 }
 
 int cloud_symlink(const char* target, const char* linkpath) {
+  if(strcmp(linkpath, "/.snapshot") == 0) {
+    errno = EACCES;
+    return logger_->error("symlink: .snapshot directory is read-only");
+  }
+
   auto ssd_linkpath = state_.ssd_path + std::string(linkpath);
   // logger_->info("symlink: " + std::string(target) + " -> " + ssd_linkpath);
 
@@ -272,6 +397,10 @@ int cloud_readlink(const char* path, char* buf, size_t size) {
 }
 
 int cloud_unlink(const char* path) {
+  if(strcmp(path, "/.snapshot") == 0) {
+    errno = EACCES;
+    return logger_->error("unlink: .snapshot directory cannot be deleted");
+  }
   return controller_->unlink_file(std::string(path));
 }
 
@@ -289,7 +418,51 @@ int cloud_rmdir(const char* path) {
 }
 
 int cloud_truncate(const char* path, off_t size) {
+  if(strcmp(path, "/.snapshot") == 0) {
+    errno = EACCES;
+    return logger_->error("truncate: .snapshot directory is read-only");
+  }
   return controller_->truncate_file(std::string(path), size);
+}
+
+int cloud_ioctl(const char *path, int cmd, void *arg, struct fuse_file_info *fi, unsigned int flags, void *data) {
+  if(strcmp(path, "/.snapshot") != 0) {
+    errno = EACCES;
+    return logger_->error("ioctl: only .snapshot supports ioctl");
+  }
+
+  unsigned long* timestamp;
+  unsigned long* current_ts;
+  switch(cmd) {
+    case CLOUDFS_SNAPSHOT:
+      timestamp = (unsigned long*)data;
+      snapshot_controller_->create_snapshot(timestamp);
+      break;
+    case CLOUDFS_RESTORE:
+      timestamp = (unsigned long*)data;
+      snapshot_controller_->restore_snapshot(timestamp);
+      break;
+    case CLOUDFS_SNAPSHOT_LIST:
+      current_ts = (unsigned long*)data;
+      snapshot_controller_->list_snapshots(current_ts);
+      break;
+    case CLOUDFS_DELETE:
+      timestamp = (unsigned long*)data;
+      snapshot_controller_->delete_snapshot(timestamp);
+      break;
+    case CLOUDFS_INSTALL_SNAPSHOT:
+      timestamp = (unsigned long*)data;
+      snapshot_controller_->install_snapshot(timestamp);
+      break;
+    case CLOUDFS_UNINSTALL_SNAPSHOT:
+      timestamp = (unsigned long*)data;
+      snapshot_controller_->uninstall_snapshot(timestamp);
+      break;
+    default:
+      errno = EINVAL;
+      return logger_->error("ioctl: unknown command");
+  }
+  return 0;
 }
 
 static struct fuse_operations cloudfs_operations;
@@ -329,6 +502,7 @@ int cloudfs_start(struct cloudfs_state *state,
   cloudfs_operations.unlink = cloud_unlink;
   cloudfs_operations.rmdir = cloud_rmdir;
   cloudfs_operations.truncate = cloud_truncate;
+  cloudfs_operations.ioctl = cloud_ioctl;
 
   int argc = 0;
   char* argv[10];

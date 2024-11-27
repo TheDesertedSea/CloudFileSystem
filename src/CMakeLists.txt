@@ -19,6 +19,8 @@ set(cloudfs_srcs
         cloudfs/chunk_splitter.cc
         cloudfs/cloudfs_controller.h
         cloudfs/cloudfs_controller.cc
+        cloudfs/snapshot.h
+        cloudfs/snapshot.cc
         )
 
 

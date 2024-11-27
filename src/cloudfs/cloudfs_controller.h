@@ -32,15 +32,21 @@ class CloudfsController {
         : main_path_(std::move(main_path)), start_(start), len_(len), is_dirty_(is_dirty), chunks_(std::move(chunks)), op_fd_(op_fd) {}
     };
 
+
     struct cloudfs_state *state_;
     std::string bucket_name_;
     std::shared_ptr<DebugLogger> logger_;
     std::unordered_map<uint64_t, OpenFile> open_files_;
     std::shared_ptr<BufferController> buffer_controller_;
+    ChunkTable chunk_table_;
 
   public:
     CloudfsController(struct cloudfs_state *state, const std::string& host_name, std::string bucket_name, std::shared_ptr<DebugLogger> logger);
     ~CloudfsController();
+
+    std::shared_ptr<BufferController> get_buffer_controller() {
+      return buffer_controller_;
+    }
 
     int stat_file(const std::string& path, struct stat* stbuf);
 
@@ -59,7 +65,7 @@ class CloudfsController {
     virtual int truncate_file(const std::string& path, off_t size) = 0;
 
     virtual void destroy() = 0;
-  protected:
+
     int get_buffer_path(const std::string& path, std::string& buffer_path);
 
     int set_buffer_path(const std::string& path, const std::string& buffer_path);
@@ -86,6 +92,10 @@ class CloudfsController {
 
     int get_truncated(const std::string& path, bool& truncated);
 
+    ChunkTable& get_chunk_table() {
+      return chunk_table_;
+    }
+
 };
 
 class CloudfsControllerNoDedup : public CloudfsController {
@@ -110,7 +120,7 @@ class CloudfsControllerNoDedup : public CloudfsController {
 
 class CloudfsControllerDedup : public CloudfsController {
 
-  ChunkTable chunk_table_;
+
   ChunkSplitter chunk_splitter_;
   static const size_t RECHUNK_BUF_SIZE;
 

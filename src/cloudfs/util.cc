@@ -2,6 +2,7 @@
 
 void debug_print(const std::string& msg, FILE* file) {
     fprintf(file, "%s\n", msg.c_str());
+    setvbuf(file, NULL, _IOLBF, 0);
 }
 
 std::string generate_object_key(const std::string& path) {
