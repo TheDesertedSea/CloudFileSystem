@@ -429,28 +429,22 @@ int cloud_ioctl(const char *path, int cmd, void *arg, struct fuse_file_info *fi,
   switch(cmd) {
     case CLOUDFS_SNAPSHOT:
       timestamp = (unsigned long*)data;
-      snapshot_controller_->create_snapshot(timestamp);
-      break;
+      return snapshot_controller_->create_snapshot(timestamp);
     case CLOUDFS_RESTORE:
       timestamp = (unsigned long*)data;
-      snapshot_controller_->restore_snapshot(timestamp);
-      break;
+      return snapshot_controller_->restore_snapshot(timestamp);
     case CLOUDFS_SNAPSHOT_LIST:
       snapshot_list = (unsigned long*)data;
-      snapshot_controller_->list_snapshots(snapshot_list);
-      break;
+      return snapshot_controller_->list_snapshots(snapshot_list);
     case CLOUDFS_DELETE:
       timestamp = (unsigned long*)data;
-      snapshot_controller_->delete_snapshot(timestamp);
-      break;
+      return snapshot_controller_->delete_snapshot(timestamp);
     case CLOUDFS_INSTALL_SNAPSHOT:
       timestamp = (unsigned long*)data;
-      snapshot_controller_->install_snapshot(timestamp);
-      break;
+      return snapshot_controller_->install_snapshot(timestamp);
     case CLOUDFS_UNINSTALL_SNAPSHOT:
       timestamp = (unsigned long*)data;
-      snapshot_controller_->uninstall_snapshot(timestamp);
-      break;
+      return snapshot_controller_->uninstall_snapshot(timestamp);
     default:
       errno = EINVAL;
       return logger_->error("ioctl: unknown command");

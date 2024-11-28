@@ -69,6 +69,7 @@ SnapshotController::SnapshotController(
     // logger_->debug("SnapshotController::SnapshotController: parse snapshot
     // timestamp: " + std::to_string(ts));
     snapshot_list.push_back(ts);
+    logger_->debug("SnapshotController::SnapshotController: recover snapshot " + std::to_string(ts));
   }
   ftruncate(fileno(file), 0);
   fclose(file);
@@ -304,6 +305,10 @@ int SnapshotController::create_snapshot(unsigned long *timestamp) {
         "SnapshotController::create_snapshot: set snapshot list failed");
   }
 
+  for(auto &ts : snapshot_list) {
+    logger_->debug("SnapshotController::create_snapshot: snapshot timestamp: " + std::to_string(ts));
+  }
+
   logger_->debug("SnapshotController::create_snapshot: create snapshot done");
 
   return 0;
@@ -521,14 +526,23 @@ int SnapshotController::restore_snapshot(unsigned long *timestamp) {
   remove(tmp_path.c_str());
 
   // delete snapshot that's newer than the restored snapshot
-  std::sort(snapshot_list.rbegin(), snapshot_list.rend()); // from new to old
-  for (size_t i = 0; i < snapshot_list.size(); i++) {
-    if (snapshot_list[i] == *timestamp) {
-      break;
-    }
-    uninstall_snapshot(&snapshot_list[i]); // uninstall if installed
-    delete_snapshot(&snapshot_list[i]);    // delete after uninstall
+  std::vector<unsigned long> new_snapshot_list;
+  std::sort(snapshot_list.begin(), snapshot_list.end()); // from old to new
+  auto i = 0;
+  while(i < (int)snapshot_list.size() && snapshot_list[i] <= *timestamp) {
+    new_snapshot_list.push_back(snapshot_list[i]);
+    logger_->debug("SnapshotController::restore_snapshot: keep snapshot " + std::to_string(snapshot_list[i]));
+    i++;
   }
+
+  // delete snapshots that are newer than the restored snapshot
+  for(auto j = i + 1; j < (int)snapshot_list.size(); j++) {
+    uninstall_snapshot(&snapshot_list[j]); // uninstall if installed
+    delete_snapshot(&snapshot_list[j]);    // delete after uninstall
+  }
+
+  set_snapshot_count(new_snapshot_list.size());
+  set_snapshot_list(new_snapshot_list);
 
   logger_->debug("SnapshotController::restore_snapshot: delete snapshot done");
 
@@ -628,6 +642,7 @@ int SnapshotController::delete_snapshot(unsigned long *timestamp) {
   for (size_t i = 0; i < snapshot_list.size(); i++) {
     if (snapshot_list[i] != *timestamp) {
       new_snapshot_list.push_back(snapshot_list[i]);
+      logger_->debug("SnapshotController::delete_snapshot: keep snapshot " + std::to_string(snapshot_list[i]));
     }
   }
   // update snapshot count
@@ -880,6 +895,10 @@ int SnapshotController::install_snapshot(unsigned long *timestamp) {
   set_installed_snapshot_count(installed_snapshot_list.size());
   set_installed_snapshot_list(installed_snapshot_list);
 
+  for(auto &ts : installed_snapshot_list) {
+    logger_->debug("SnapshotController::install_snapshot: installed snapshot " + std::to_string(ts));
+  }
+
   logger_->debug(
       "SnapshotController::install_snapshot: install snapshot done, " +
       std::to_string(*timestamp));
@@ -911,12 +930,15 @@ int SnapshotController::uninstall_snapshot(unsigned long *timestamp) {
   auto root_path = std::string(state_->ssd_path) + "/snapshot_" +
                    std::to_string(*timestamp);
   clear_dir(root_path);
+  // delete root path
+  remove(root_path.c_str());
 
   // update installed snapshot list
   std::vector<unsigned long> new_installed_snapshot_list;
   for (size_t i = 0; i < installed_snapshot_list.size(); i++) {
     if (installed_snapshot_list[i] != *timestamp) {
       new_installed_snapshot_list.push_back(installed_snapshot_list[i]);
+      logger_->debug("SnapshotController::uninstall_snapshot: keep installed snapshot " + std::to_string(installed_snapshot_list[i]));
     }
   }
   set_installed_snapshot_count(new_installed_snapshot_list.size());

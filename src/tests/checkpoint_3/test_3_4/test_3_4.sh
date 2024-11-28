@@ -115,6 +115,19 @@ function execute_part3_tests()
       print_result 0
    fi
 
+   ls -al $FUSE_MNT/
+
+   echo -ne "Checking for snapshot uninstall                  "
+   $SCRIPTS_DIR/snapshot $FUSE_MNT/.snapshot u $snapshot_num
+   if [ $? -ne 0 ]; then
+      print_result 1
+      exit
+   else
+      print_result 0
+   fi
+
+   ls -al $FUSE_MNT/
+
 }
 
 #

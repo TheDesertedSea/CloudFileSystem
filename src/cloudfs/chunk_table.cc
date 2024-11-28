@@ -155,11 +155,15 @@ void ChunkTable::Restore(FILE *snapshot_file) {
     //        chunk_table_.end()); // since snapshot_ref_count will be larger than
     //                             // 0, the key must exist
     if(chunk_table_.find(key_str) == chunk_table_.end()) {
-      logger_->error("ChunkTable: restore key " + key_str + " not found");
-      continue;
+      if(ref_count > 0) {
+        logger_->error("ChunkTable: restore key " + key_str + " not found, but ref_count > 0");
+        continue;
+      }
+      chunk_table_[key_str] = RefCounts(0, 0);
+    } else {
+      chunk_table_[key_str].ref_count_ = ref_count;
     }
 
-    chunk_table_[key_str].ref_count_ = ref_count;
     logger_->debug("ChunkTable: restore key " + key_str + ", ref_count " +
                    std::to_string(ref_count));
   }
@@ -182,7 +186,9 @@ void ChunkTable::DeleteSnapshot(FILE *snapshot_file) {
     //        chunk_table_.end()); // since snapshot_ref_count will be larger than
     //                             // 0, the key must exist
     if(chunk_table_.find(key_str) == chunk_table_.end()) {
-      logger_->error("ChunkTable: delete snapshot key " + key_str + " not found");
+      if(ref_count > 0) {
+        logger_->error("ChunkTable: delete snapshot key " + key_str + " not found, but ref_count > 0");
+      }
       continue;
     }
     logger_->debug("ChunkTable: delete snapshot key " + key_str + ", ref_count " +
