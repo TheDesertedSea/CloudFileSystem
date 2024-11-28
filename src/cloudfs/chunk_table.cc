@@ -129,7 +129,10 @@ void ChunkTable::Snapshot(FILE *snapshot_file) {
            snapshot_file); // only ref_count is needed for snapshot
 
     // add snapshot ref count
-    entry.second.snapshot_ref_count_++;
+    if(entry.second.ref_count_ > 0) {
+      // only ref_count > 0 means the chunk is used by this snapshot
+      entry.second.snapshot_ref_count_++;
+    }
   }
 }
 
@@ -167,11 +170,17 @@ void ChunkTable::DeleteSnapshot(FILE *snapshot_file) {
     std::vector<char> key(key_len);
     fread(key.data(), sizeof(char), key_len, snapshot_file);
     std::string key_str(key.begin(), key.end());
+    int ref_count;
+    fread(&ref_count, sizeof(int), 1, snapshot_file);
 
     assert(chunk_table_.find(key_str) !=
            chunk_table_.end()); // since snapshot_ref_count will be larger than
                                 // 0, the key must exist
-    chunk_table_[key_str].snapshot_ref_count_--;
+
+    if(ref_count > 0) {
+      // only ref_count > 0 means the chunk is used by this snapshot
+      chunk_table_[key_str].snapshot_ref_count_--;
+    }
     if (chunk_table_[key_str].snapshot_ref_count_ == 0 &&
         chunk_table_[key_str].ref_count_ == 0) {
       // remove the key if both ref_count and snapshot_ref_count are 0

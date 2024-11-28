@@ -17,7 +17,7 @@ public:
 
     int create_snapshot(unsigned long* timestamp);
     int restore_snapshot(unsigned long* timestamp);
-    int list_snapshots(unsigned long* current_ts);
+    int list_snapshots(unsigned long* snapshot_list);
     int delete_snapshot(unsigned long* timestamp);
     int install_snapshot(unsigned long* timestamp);
     int uninstall_snapshot(unsigned long* timestamp);
@@ -33,4 +33,6 @@ private:
     int set_installed_snapshot_count(int count);
     int get_installed_snapshot_list(std::vector<unsigned long>& list);
     int set_installed_snapshot_list(std::vector<unsigned long>& list);
+
+    int clear_ssd();
 };

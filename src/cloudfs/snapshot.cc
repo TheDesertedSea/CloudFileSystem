@@ -293,6 +293,9 @@ int SnapshotController::restore_snapshot(unsigned long *timestamp) {
         return logger_->error("SnapshotController::restore_snapshot: snapshot not found");
     }
 
+    // clear ssd path
+    clear_ssd();
+
     // TODO: restore snapshot
     auto tmp_path = std::string(state_->ssd_path) + "/.snapshot_tmp";
     auto object_key = "snapshot_" + std::to_string(*timestamp);
@@ -464,9 +467,93 @@ int SnapshotController::restore_snapshot(unsigned long *timestamp) {
     return 0;
 }
 
-int SnapshotController::list_snapshots(unsigned long *current_ts) { return 0; }
+int SnapshotController::list_snapshots(unsigned long* snapshot_list) { 
+  // snapshot list has size of CLOUDFS_MAX_NUM_SNAPSHOTS + 1
+  std::vector<unsigned long> snapshot_list_vec;
+  if(get_snapshot_list(snapshot_list_vec) != 0) {
+    return logger_->error("SnapshotController::list_snapshots: get snapshot list failed");
+  }
+  for(size_t i = 0; i < snapshot_list_vec.size(); i++) {
+    snapshot_list[i] = snapshot_list_vec[i];
+  }
+  snapshot_list[snapshot_list_vec.size()] = 0; // set 0 to indicate end
+  return 0;
+}
 
-int SnapshotController::delete_snapshot(unsigned long *timestamp) { return 0; }
+int SnapshotController::delete_snapshot(unsigned long *timestamp) { 
+  // check if snapshot exists
+  std::vector<unsigned long> snapshot_list;
+  if(get_snapshot_list(snapshot_list) != 0) {
+    return logger_->error("SnapshotController::delete_snapshot: get snapshot list failed");
+  }
+  bool found = false;
+  for(size_t i = 0; i < snapshot_list.size(); i++) {
+    if(snapshot_list[i] == *timestamp) {
+      found = true;
+      break;
+    }
+  }
+  if(!found) {
+    errno = EINVAL;
+    return logger_->error("SnapshotController::delete_snapshot: snapshot not found, " + std::to_string(*timestamp));
+  }
+  
+  // check if snapshot is installed
+  std::vector<unsigned long> installed_snapshot_list;
+  if(get_installed_snapshot_list(installed_snapshot_list) != 0) {
+    return logger_->error("SnapshotController::delete_snapshot: get installed snapshot list failed");
+  }
+  bool installed = false;
+  for(size_t i = 0; i < installed_snapshot_list.size(); i++) {
+    if(installed_snapshot_list[i] == *timestamp) {
+      installed = true;
+      break;
+    }
+  }
+  if(installed) {
+    // cannot delete installed snapshot
+    errno = EBUSY;
+    return logger_->error("SnapshotController::delete_snapshot: snapshot is installed, " + std::to_string(*timestamp));
+  }
+
+  // delete snapshot
+
+  // first download snapshot
+  auto tmp_path = std::string(state_->ssd_path) + "/.snapshot_tmp";
+  auto object_key = "snapshot_" + std::to_string(*timestamp);
+  auto buffer_controller = cloudfs_controller_->get_buffer_controller();
+  buffer_controller->download_file(object_key, tmp_path);
+
+  FILE* tmp_file = fopen(tmp_path.c_str(), "r");
+  if(tmp_file == NULL) {
+    return logger_->error("SnapshotController::delete_snapshot: open tmp file failed, " + tmp_path);
+  }
+
+  fseek(tmp_file, sizeof(size_t), SEEK_SET); // skip entry count
+
+  cloudfs_controller_->get_chunk_table().DeleteSnapshot(tmp_file); // chunk table will handle decreasing snapshot_ref_count
+
+  fclose(tmp_file);
+
+  // delete tmp file
+  remove(tmp_path.c_str());
+
+  // delete cloud object
+  buffer_controller->delete_object(object_key);
+
+  // delete from snapshot_list
+  std::vector<unsigned long> new_snapshot_list;
+  for(size_t i = 0; i < snapshot_list.size(); i++) {
+    if(snapshot_list[i] != *timestamp) {
+      new_snapshot_list.push_back(snapshot_list[i]);
+    }
+  }
+  // update snapshot count
+  set_snapshot_count(new_snapshot_list.size());
+  // update snapshot list
+  set_snapshot_list(new_snapshot_list);
+  return 0;
+}
 
 int SnapshotController::install_snapshot(unsigned long *timestamp) { return 0; }
 
@@ -607,6 +694,49 @@ int SnapshotController::set_installed_snapshot_list(std::vector<unsigned long>& 
   for(size_t i = 0; i < list.size(); i++) {
     auto xattr_name = "user.cloudfs.snapshot_installed_" + std::to_string(i);
     lsetxattr(snapshot_stub_path_.c_str(), xattr_name.c_str(), &list[i], sizeof(unsigned long), 0);
+  }
+  return 0;
+}
+
+int SnapshotController::clear_ssd() {
+  std::queue<std::string> dir_queue;
+  dir_queue.push(state_->ssd_path);
+  while(!dir_queue.empty()) {
+    auto dir = dir_queue.front();
+    dir_queue.pop();
+
+    DIR* dirp = opendir(dir.c_str());
+    if(dirp == NULL) {
+      return logger_->error("SnapshotController::clear_ssd: open dir failed, " + dir);
+    }
+    struct dirent* entry;
+    while((entry = readdir(dirp)) != NULL) {
+      auto name = std::string(entry->d_name);
+      if(name == "." || name == "..") {
+        continue;
+      }
+      if (name == "lost+found") {
+        continue;
+      }
+      if (name == "." || name == "..") {
+        continue;
+      }
+      if(name == ".snapshot") {
+        continue;
+      }
+      
+      auto full_path = dir + "/" + name;
+      struct stat st;
+      if(stat(full_path.c_str(), &st) != 0) {
+        return logger_->error("SnapshotController::clear_ssd: stat file failed, " + full_path);
+      }
+      if(S_ISDIR(st.st_mode)) {
+        dir_queue.push(full_path);
+      } else {
+        remove(full_path.c_str());
+      }
+    }
+    closedir(dirp);
   }
   return 0;
 }

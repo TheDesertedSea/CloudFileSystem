@@ -425,7 +425,7 @@ int cloud_ioctl(const char *path, int cmd, void *arg, struct fuse_file_info *fi,
   }
 
   unsigned long* timestamp;
-  unsigned long* current_ts;
+  unsigned long* snapshot_list;
   switch(cmd) {
     case CLOUDFS_SNAPSHOT:
       timestamp = (unsigned long*)data;
@@ -436,8 +436,8 @@ int cloud_ioctl(const char *path, int cmd, void *arg, struct fuse_file_info *fi,
       snapshot_controller_->restore_snapshot(timestamp);
       break;
     case CLOUDFS_SNAPSHOT_LIST:
-      current_ts = (unsigned long*)data;
-      snapshot_controller_->list_snapshots(current_ts);
+      snapshot_list = (unsigned long*)data;
+      snapshot_controller_->list_snapshots(snapshot_list);
       break;
     case CLOUDFS_DELETE:
       timestamp = (unsigned long*)data;
