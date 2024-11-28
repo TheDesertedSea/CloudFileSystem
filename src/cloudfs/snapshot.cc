@@ -485,7 +485,8 @@ void SnapshotController::persist() {
   if(file == NULL) {
     logger_->error("SnapshotController::persist: open snapshot stub file failed, " + snapshot_stub_path_);
   }
-  fwrite(&snapshot_list, sizeof(size_t), 1, file);
+  size_t snapshot_count = snapshot_list.size();
+  fwrite(&snapshot_count, sizeof(size_t), 1, file);
   for(auto& ts : snapshot_list) {
     logger_->debug("SnapshotController::persist: write snapshot timestamp " + std::to_string(ts));
     fwrite(&ts, sizeof(unsigned long), 1, file);

@@ -5,6 +5,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "buffer_file.h"
+
 class ChunkTable {
 
   struct RefCounts {
@@ -17,14 +19,14 @@ class ChunkTable {
   std::string ssd_path_;
 
   std::shared_ptr<DebugLogger> logger_;
-
+  std::shared_ptr<BufferController> buffer_controller_;
 
   static const std::string TABLE_FILE_NAME;
 
   std::unordered_map<std::string, RefCounts> chunk_table_;
 
   public:
-    ChunkTable(const std::string& ssd_path, std::shared_ptr<DebugLogger> logger);
+    ChunkTable(const std::string& ssd_path, std::shared_ptr<DebugLogger> logger, std::shared_ptr<BufferController> buffer_controller);
     ~ChunkTable();
 
     // Returns true if this chunk is new, false if it already exists

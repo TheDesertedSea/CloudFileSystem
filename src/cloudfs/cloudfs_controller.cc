@@ -175,7 +175,7 @@ int CloudfsController::get_truncated(const std::string& path, bool& truncated) {
 }
 
 CloudfsController::CloudfsController(struct cloudfs_state *state, const std::string& host_name, std::string bucket_name, std::shared_ptr<DebugLogger> logger) 
-  : state_(state), bucket_name_(std::move(bucket_name)), logger_(std::move(logger)), buffer_controller_(std::make_shared<BufferController>(host_name, bucket_name_, logger_)), chunk_table_(state->ssd_path, logger) {
+  : state_(state), bucket_name_(std::move(bucket_name)), logger_(std::move(logger)), buffer_controller_(std::make_shared<BufferController>(host_name, bucket_name_, logger_)), chunk_table_(state->ssd_path, logger_, buffer_controller_) {
 
 }
 
