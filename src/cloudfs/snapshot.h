@@ -34,5 +34,5 @@ private:
     int get_installed_snapshot_list(std::vector<unsigned long>& list);
     int set_installed_snapshot_list(std::vector<unsigned long>& list);
 
-    int clear_ssd();
+    int clear_dir(const std::string& path);
 };

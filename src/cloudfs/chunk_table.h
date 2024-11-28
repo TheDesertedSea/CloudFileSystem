@@ -44,4 +44,6 @@ class ChunkTable {
     void Restore(FILE* snapshot_file);
 
     void DeleteSnapshot(FILE* snapshot_file);
+
+    void SkipSnapshot(FILE* snapshot_file);
 };

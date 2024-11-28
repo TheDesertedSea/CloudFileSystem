@@ -20,7 +20,7 @@ ChunkTable::ChunkTable(const std::string &ssd_path,
   struct stat st;
   stat(table_path.c_str(), &st);
   if(st.st_size == 0) {
-    logger_->debug("ChunkTable: no chunk table");
+    // logger_->debug("ChunkTable: no chunk table");
     remove(table_path.c_str());
     // no chunk table
     return;
@@ -120,8 +120,8 @@ void ChunkTable::Snapshot(FILE *snapshot_file) {
   size_t num_entries = chunk_table_.size();
   fwrite(&num_entries, sizeof(size_t), 1, snapshot_file);
   for (auto &entry : chunk_table_) {
-    // logger_->info("ChunkTable: persist key " + entry.first + ", count " +
-    // std::to_string(entry.second));
+    logger_->info("ChunkTable: persist key " + entry.first + ", ref_count " +
+                 std::to_string(entry.second.ref_count_));
     size_t key_len = entry.first.size();
     fwrite(&key_len, sizeof(size_t), 1, snapshot_file);
     fwrite(entry.first.c_str(), sizeof(char), key_len, snapshot_file);
@@ -140,8 +140,8 @@ void ChunkTable::Restore(FILE *snapshot_file) {
   logger_->debug("ChunkTable: restore");
   size_t num_entries;
   fread(&num_entries, sizeof(size_t), 1, snapshot_file);
-  logger_->debug("ChunkTable: restore entry count " +
-                 std::to_string(num_entries));
+  // logger_->debug("ChunkTable: restore entry count " +
+                 // std::to_string(num_entries));
   for (size_t i = 0; i < num_entries; i++) {
     size_t key_len;
     fread(&key_len, sizeof(size_t), 1, snapshot_file);
@@ -151,14 +151,19 @@ void ChunkTable::Restore(FILE *snapshot_file) {
     int ref_count;
     fread(&ref_count, sizeof(int), 1, snapshot_file);
 
-    assert(chunk_table_.find(key_str) !=
-           chunk_table_.end()); // since snapshot_ref_count will be larger than
-                                // 0, the key must exist
+    // assert(chunk_table_.find(key_str) !=
+    //        chunk_table_.end()); // since snapshot_ref_count will be larger than
+    //                             // 0, the key must exist
+    if(chunk_table_.find(key_str) == chunk_table_.end()) {
+      logger_->error("ChunkTable: restore key " + key_str + " not found");
+      continue;
+    }
+
     chunk_table_[key_str].ref_count_ = ref_count;
     logger_->debug("ChunkTable: restore key " + key_str + ", ref_count " +
                    std::to_string(ref_count));
   }
-  logger_->debug("ChunkTable: restore done");
+  // logger_->debug("ChunkTable: restore done");
 }
 
 void ChunkTable::DeleteSnapshot(FILE *snapshot_file) {
@@ -173,9 +178,15 @@ void ChunkTable::DeleteSnapshot(FILE *snapshot_file) {
     int ref_count;
     fread(&ref_count, sizeof(int), 1, snapshot_file);
 
-    assert(chunk_table_.find(key_str) !=
-           chunk_table_.end()); // since snapshot_ref_count will be larger than
-                                // 0, the key must exist
+    // assert(chunk_table_.find(key_str) !=
+    //        chunk_table_.end()); // since snapshot_ref_count will be larger than
+    //                             // 0, the key must exist
+    if(chunk_table_.find(key_str) == chunk_table_.end()) {
+      logger_->error("ChunkTable: delete snapshot key " + key_str + " not found");
+      continue;
+    }
+    logger_->debug("ChunkTable: delete snapshot key " + key_str + ", ref_count " +
+                   std::to_string(ref_count));
 
     if(ref_count > 0) {
       // only ref_count > 0 means the chunk is used by this snapshot
@@ -186,5 +197,16 @@ void ChunkTable::DeleteSnapshot(FILE *snapshot_file) {
       // remove the key if both ref_count and snapshot_ref_count are 0
       chunk_table_.erase(key_str);
     }
+  }
+}
+
+void ChunkTable::SkipSnapshot(FILE* snapshot_file) {
+  size_t num_entries;
+  fread(&num_entries, sizeof(size_t), 1, snapshot_file);
+  for(size_t i = 0; i < num_entries; i++) {
+    size_t key_len;
+    fread(&key_len, sizeof(size_t), 1, snapshot_file);
+    fseek(snapshot_file, key_len, SEEK_CUR); // skip key
+    fseek(snapshot_file, sizeof(int), SEEK_CUR); // skip ref_count
   }
 }
