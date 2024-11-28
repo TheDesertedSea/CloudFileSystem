@@ -22,6 +22,8 @@ public:
     int install_snapshot(unsigned long* timestamp);
     int uninstall_snapshot(unsigned long* timestamp);
 
+    void persist();
+
 private:
     int get_snapshot_count(int& count);
     int set_snapshot_count(int count);

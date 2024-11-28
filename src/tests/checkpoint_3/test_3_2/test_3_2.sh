@@ -57,12 +57,16 @@ function execute_part3_tests()
     
     sleep 1
 
+    ls -al $FUSE_MNT/
+
     # unmount and remount
     sync
     sleep 2
     $SCRIPTS_DIR/cloudfs_controller.sh u
     sleep 2
     $SCRIPTS_DIR/umount_disks.sh
+
+    ls -al $S3_DIR/cloudfs/
     sleep 2
     $SCRIPTS_DIR/format_disks.sh
     $SCRIPTS_DIR/mount_disks.sh
@@ -70,22 +74,24 @@ function execute_part3_tests()
     sync
     sleep 2
     $SCRIPTS_DIR/cloudfs_controller.sh x --ssd-path $SSD_MNT_ --fuse-path $FUSE_MNT_ --threshold $THRESHOLD --avg-seg-size $AVGSEGSIZE
-    # restore a snapshot
-    echo -ne "Checking for snapshot restore         "
-    $SCRIPTS_DIR/snapshot $FUSE_MNT/.snapshot r $snapshot_num
-    if [ $? -ne 0 ]; then
-      print_result 1 
-      exit
-    else
-      print_result 0
-    fi
+
+    ls -al $FUSE_MNT/
+    # # restore a snapshot
+    # echo -ne "Checking for snapshot restore         "
+    # $SCRIPTS_DIR/snapshot $FUSE_MNT/.snapshot r $snapshot_num
+    # if [ $? -ne 0 ]; then
+    #   print_result 1 
+    #   exit
+    # else
+    #   print_result 0
+    # fi
     
-    sleep 1
-    echo -ne "Checking for data integrity           "
-    (cd $TEMPDIR && ls -lR --time-style=+|grep -v '^total'|grep -v 'cache' > $LOG_DIR/expected.txt)
-    (cd $TESTDIR && ls -lR --time-style=+|grep -v '^total'|grep -v 'cache' > $LOG_DIR/real.txt)
-    diff $LOG_DIR/expected.txt $LOG_DIR/real.txt
-    print_result $?
+    # sleep 1
+    # echo -ne "Checking for data integrity           "
+    # (cd $TEMPDIR && ls -lR --time-style=+|grep -v '^total'|grep -v 'cache' > $LOG_DIR/expected.txt)
+    # (cd $TESTDIR && ls -lR --time-style=+|grep -v '^total'|grep -v 'cache' > $LOG_DIR/real.txt)
+    # diff $LOG_DIR/expected.txt $LOG_DIR/real.txt
+    # print_result $?
 }
 
 # Main

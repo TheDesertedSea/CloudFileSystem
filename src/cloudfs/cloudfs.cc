@@ -34,7 +34,7 @@ static const char* bukcet_name = "cloudfs";
 
 static const std::string log_path = "/tmp/cloudfs.log";
 
-static std::string snapshot_stub_path;
+static std::string snapshot_stub_path_;
 
 static std::shared_ptr<DebugLogger> logger_;
 
@@ -59,26 +59,19 @@ void *cloudfs_init(struct fuse_conn_info *conn UNUSED)
   }
   snapshot_controller_ = std::unique_ptr<SnapshotController>(new SnapshotController(&state_, logger_, controller_));
 
-  // create .snapshot file, read-only
-  snapshot_stub_path = std::string(state_.ssd_path) + "/.snapshot";
-  auto ret = open(snapshot_stub_path.c_str(), O_CREAT | O_RDONLY, 0777);
-  if(ret < 0) {
-    if(errno != EEXIST) {
-      logger_->error("cloudfs_init: create .snapshot directory failed");
-      return NULL;
-    }
-  }
+  snapshot_stub_path_ = std::string(state_.ssd_path) + "/.snapshot";
   return NULL;
 }
 
 void cloudfs_destroy(void *data UNUSED) {
   controller_->destroy();
+  snapshot_controller_->persist();
 }
 
 int cloudfs_getattr(const char *path, struct stat *statbuf)
 {
   if(strcmp(path, "/.snapshot") == 0) {
-    auto ret = lstat(snapshot_stub_path.c_str(), statbuf);
+    auto ret = lstat(snapshot_stub_path_.c_str(), statbuf);
     if(ret < 0) {
       return logger_->error("getattr: failed");
     }
@@ -89,7 +82,7 @@ int cloudfs_getattr(const char *path, struct stat *statbuf)
 
 int cloudfs_getxattr(const char* path, const char* attr_name, char* buf, size_t size) {
   if(strcmp(path, "/.snapshot") == 0) {
-    auto ret = lgetxattr(snapshot_stub_path.c_str(), attr_name, buf, size);
+    auto ret = lgetxattr(snapshot_stub_path_.c_str(), attr_name, buf, size);
     if(ret < 0) {
       return logger_->error("getxattr: failed");
     }
@@ -188,7 +181,7 @@ int cloudfs_open(const char *path, struct fuse_file_info *fi)
       return logger_->error("open: .snapshot directory is read-only");
     }
 
-    auto ret = open(snapshot_stub_path.c_str(), fi->flags);
+    auto ret = open(snapshot_stub_path_.c_str(), fi->flags);
     if(ret < 0) {
       return logger_->error("open: failed");
     }
@@ -255,10 +248,10 @@ int cloud_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t off
   }
   do {
     // filter out lost+found directory
-    if(strcmp(entry->d_name, "lost+found") == 0) {
+    auto name = std::string(entry->d_name);
+    if(name == "lost+found") {
       continue;
     }
-    auto name = std::string(entry->d_name);
     // cloudfs_info("readdir: name = " + name);
     if(is_buffer_path(name)) {
       continue;
@@ -286,7 +279,7 @@ int cloud_access(const char *path, int mask) {
       errno = EACCES;
       return logger_->error("access: .snapshot directory is read-only");
     }
-    auto ret = access(snapshot_stub_path.c_str(), mask);
+    auto ret = access(snapshot_stub_path_.c_str(), mask);
     if(ret < 0) {
       return logger_->error("access: failed");
     }

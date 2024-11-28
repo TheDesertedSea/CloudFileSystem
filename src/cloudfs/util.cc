@@ -10,8 +10,6 @@ std::string generate_object_key(const std::string& path) {
   for(auto& c : key) {
     if(c == '/') {
       c = '_';
-    } else if(c == '.') {
-      c = '+';
     }
   }
   return key;

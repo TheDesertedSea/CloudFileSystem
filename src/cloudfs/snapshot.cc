@@ -19,7 +19,52 @@ SnapshotController::SnapshotController(
     : state_(state), logger_(logger), cloudfs_controller_(cloudfs_controller) {
     snapshot_stub_path_ = std::string(state_->ssd_path) + "/.snapshot";
 
-    
+    auto ret = open(snapshot_stub_path_.c_str(), O_CREAT | O_RDONLY, 0777);
+    if(ret < 0) {
+      if(errno != EEXIST) {
+        logger_->error("SnapshotController::SnapshotController: create .snapshot directory failed");
+      }
+    }
+    close(ret);
+
+    // try to download .snapshot info from cloud
+    auto buffer_controller = cloudfs_controller_->get_buffer_controller();
+    auto object_key = generate_object_key(snapshot_stub_path_);
+    buffer_controller->download_file(object_key, snapshot_stub_path_);
+    logger_->debug("SnapshotController::SnapshotController: download .snapshot info from cloud done");
+
+    struct stat st;
+    if(stat(snapshot_stub_path_.c_str(), &st) != 0) {
+      logger_->error("SnapshotController::SnapshotController: stat snapshot stub file failed, " + snapshot_stub_path_);
+    }
+    if(st.st_size == 0) {
+      // no snapshot info
+      logger_->debug("SnapshotController::SnapshotController: no snapshot info");
+      return;
+    }
+    logger_->debug("SnapshotController::SnapshotController: .snapshot info exists, size: " + std::to_string(st.st_size));
+
+    // recover .snapshot info
+    FILE* file = fopen(snapshot_stub_path_.c_str(), "r");
+    if(file == NULL) {
+      logger_->error("SnapshotController::SnapshotController: open snapshot stub file failed, " + snapshot_stub_path_);
+    }
+    size_t entry_count;
+    fread(&entry_count, sizeof(size_t), 1, file);
+    logger_->debug("SnapshotController::SnapshotController: parse entry count: " + std::to_string(entry_count));
+    std::vector<unsigned long> snapshot_list;
+    for(size_t i = 0; i < entry_count; i++) {
+      unsigned long ts;
+      fread(&ts, sizeof(unsigned long), 1, file);
+      // logger_->debug("SnapshotController::SnapshotController: parse snapshot timestamp: " + std::to_string(ts));
+      snapshot_list.push_back(ts);
+    }
+    ftruncate(fileno(file), 0);
+    fclose(file);
+
+    set_snapshot_count(entry_count);
+    set_snapshot_list(snapshot_list);
+
 }
 
 SnapshotController::~SnapshotController() {}
@@ -101,10 +146,10 @@ int SnapshotController::create_snapshot(unsigned long *timestamp) {
           "SnapshotController::generate_snapshot: readdir failed, " + dir);
     }
     do {
-      if (strcmp(entry->d_name, "lost+found") == 0) {
+      auto name = std::string(entry->d_name);
+      if (name == "lost+found") {
         continue;
       }
-      auto name = std::string(entry->d_name);
       if (name == "." || name == "..") {
         continue;
       }
@@ -427,6 +472,40 @@ int SnapshotController::install_snapshot(unsigned long *timestamp) { return 0; }
 
 int SnapshotController::uninstall_snapshot(unsigned long *timestamp) {
   return 0;
+}
+
+void SnapshotController::persist() {
+  logger_->debug("SnapshotController::persist: persist snapshot info");
+  std::vector<unsigned long> snapshot_list;
+  if(get_snapshot_list(snapshot_list) != 0) {
+    logger_->error("SnapshotController::persist: get snapshot list failed");
+  }
+
+  FILE* file = fopen(snapshot_stub_path_.c_str(), "w");
+  if(file == NULL) {
+    logger_->error("SnapshotController::persist: open snapshot stub file failed, " + snapshot_stub_path_);
+  }
+  fwrite(&snapshot_list, sizeof(size_t), 1, file);
+  for(auto& ts : snapshot_list) {
+    logger_->debug("SnapshotController::persist: write snapshot timestamp " + std::to_string(ts));
+    fwrite(&ts, sizeof(unsigned long), 1, file);
+  }
+  fclose(file);
+
+  struct stat st;
+  if(stat(snapshot_stub_path_.c_str(), &st) != 0) {
+    logger_->error("SnapshotController::persist: stat snapshot stub file failed, " + snapshot_stub_path_);
+  }
+
+  // upload file to cloud
+  auto object_key = generate_object_key(snapshot_stub_path_);
+  auto buffer_controller = cloudfs_controller_->get_buffer_controller();
+  buffer_controller->upload_file(object_key, snapshot_stub_path_, st.st_size);
+
+  // truncate snapshot stub file
+  truncate(snapshot_stub_path_.c_str(), 0);
+
+  logger_->debug("SnapshotController::persist: upload snapshot info done");
 }
 
 int SnapshotController::get_snapshot_count(int &count) {
