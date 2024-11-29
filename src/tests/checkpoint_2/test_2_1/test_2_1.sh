@@ -8,6 +8,7 @@ TEST_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 source $TEST_DIR/../../../scripts/paths.sh
 
+CACHE_SIZE="32"
 CLOUDFS=$cloudfs_bin
 FUSE=$fuse_mnt
 SSD=$ssd_mnt
@@ -85,7 +86,7 @@ function execute_part2_tests()
 #
 # Main
 #
-process_args cloudfs --ssd-path $SSD_MNT_ --fuse-path $FUSE_MNT_ --threshold $THRESHOLD --avg-seg-size $AVGSEGSIZE
+process_args cloudfs --ssd-path $SSD_MNT_ --fuse-path $FUSE_MNT_ --threshold $THRESHOLD --avg-seg-size $AVGSEGSIZE --cache-size $CACHE_SIZE
 
 
 #----

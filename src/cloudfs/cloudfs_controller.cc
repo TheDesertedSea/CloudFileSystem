@@ -175,7 +175,7 @@ int CloudfsController::get_truncated(const std::string& path, bool& truncated) {
 }
 
 CloudfsController::CloudfsController(struct cloudfs_state *state, const std::string& host_name, std::string bucket_name, std::shared_ptr<DebugLogger> logger) 
-  : state_(state), bucket_name_(std::move(bucket_name)), logger_(std::move(logger)), buffer_controller_(std::make_shared<BufferController>(host_name, bucket_name_, logger_)), chunk_table_(state->ssd_path, logger_, buffer_controller_) {
+  : state_(state), bucket_name_(std::move(bucket_name)), logger_(std::move(logger)), buffer_controller_(std::make_shared<BufferController>(state, bucket_name_, logger_)), chunk_table_(state->ssd_path, logger_, buffer_controller_) {
 
 }
 
@@ -566,7 +566,7 @@ int CloudfsControllerDedup::open_file(const std::string& path, int flags, uint64
 }
 
 int CloudfsControllerDedup::read_file(const std::string& path, uint64_t fd, char* buf, size_t read_size, off_t read_offset) {
-  // logger_->info("read_file: " + path + ", fd: " + std::to_string(fd) + ", size: " + std::to_string(read_size) + ", offset: " + std::to_string(read_offset));
+  logger_->info("read_file: " + path + ", fd: " + std::to_string(fd) + ", size: " + std::to_string(read_size) + ", offset: " + std::to_string(read_offset));
 
   auto main_path = open_files_[fd].main_path_;
 
@@ -996,7 +996,7 @@ int CloudfsControllerDedup::truncate_file(const std::string& path, off_t truncat
     auto cur_offset = 0;
     for(int i = 0; i <= truncate_point_idx; i++) {
       auto& chunk = chunks[i];
-      auto ret = buffer_controller_->download_chunk(chunk.key_, op_fd, cur_offset);
+      auto ret = buffer_controller_->download_chunk(chunk.key_, op_fd, cur_offset, chunk.len_);
       if(ret != 0) {
         return logger_->error("truncate_file: download_chunk failed");
       }
@@ -1052,7 +1052,7 @@ int CloudfsControllerDedup::truncate_file(const std::string& path, off_t truncat
 
   // load truncate_point_idx chunk
   buffer_controller_->clear_file(op_fd);
-  ret = buffer_controller_->download_chunk(chunks[truncate_point_idx].key_, op_fd, 0);
+  ret = buffer_controller_->download_chunk(chunks[truncate_point_idx].key_, op_fd, 0, chunks[truncate_point_idx].len_);
   if(ret != 0) {
     return logger_->error("truncate_file: download_chunk failed");
   }
@@ -1104,6 +1104,8 @@ int CloudfsControllerDedup::truncate_file(const std::string& path, off_t truncat
     chunks.push_back(last_chunk);
   }
 
+  close(op_fd);
+
   ret = set_chunkinfo(main_path, chunks);
   if(ret != 0) {
     return logger_->error("truncate_file: set_chunkinfo failed");
@@ -1130,6 +1132,7 @@ int CloudfsControllerDedup::truncate_file(const std::string& path, off_t truncat
 
 void CloudfsControllerDedup::destroy() {
   chunk_table_.Persist();
+  buffer_controller_->persist_cache_state();
 }
 
 int CloudfsControllerDedup::prepare_read_data(off_t offset, size_t r_size, uint64_t fd) {
@@ -1162,7 +1165,7 @@ int CloudfsControllerDedup::prepare_read_data(off_t offset, size_t r_size, uint6
     auto& chunk = chunks[i];
     // logger_->info("prepare_read_data: download chunk start " + std::to_string(chunk.start_) + ", len " + std::to_string(chunk.len_) + ", key " + chunk.key_);
     // download chunk
-    auto ret = buffer_controller_->download_chunk(chunk.key_, op_fd, buffer_len);
+    auto ret = buffer_controller_->download_chunk(chunk.key_, op_fd, buffer_len, chunk.len_);
     // struct stat stbuf;
     // ret = lstat(buffer_path.c_str(), &stbuf);
     // if(ret == -1) {
@@ -1197,7 +1200,7 @@ int CloudfsControllerDedup::prepare_write_data(off_t offset, size_t w_size, uint
     if(chunks.size() > 0) {
       // read the last chunk, to make convinent for rechunking
       auto& chunk = chunks.back();
-      auto ret = buffer_controller_->download_chunk(chunk.key_, op_fd, 0);
+      auto ret = buffer_controller_->download_chunk(chunk.key_, op_fd, 0, chunk.len_);
       if(ret != 0) {
         return logger_->error("prepare_write_data: download_chunk failed");
       }
@@ -1240,7 +1243,7 @@ int CloudfsControllerDedup::prepare_write_data(off_t offset, size_t w_size, uint
   for(int i = write_start_idx; i <= write_end_idx; i++) {
     auto& chunk = chunks[i];
     // download chunk
-    auto ret = buffer_controller_->download_chunk(chunk.key_, op_fd, buffer_len);
+    auto ret = buffer_controller_->download_chunk(chunk.key_, op_fd, buffer_len, chunk.len_);
     if(ret != 0) {
       return logger_->error("prepare_read_data: download_chunk failed");
     }

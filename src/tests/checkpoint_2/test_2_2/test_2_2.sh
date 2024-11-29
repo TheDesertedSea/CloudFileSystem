@@ -25,6 +25,7 @@ TESTDIR="$FUSE_MNT_"
 TEMPDIR="/tmp/cloudfstest"
 STATFILE="$LOG_DIR/stats"
 TARFILE="$TEST_DIR/big_test.tar.gz"
+CACHE_SIZE="32"
 
 CACHEDIR=$CACHE_DIR
 
@@ -96,7 +97,7 @@ function execute_part2_tests()
 #
 # Main
 #
-process_args cloudfs --ssd-path $SSD_MNT_ --fuse-path $FUSE_MNT_ --threshold $THRESHOLD --avg-seg-size $AVGSEGSIZE
+process_args cloudfs --ssd-path $SSD_MNT_ --fuse-path $FUSE_MNT_ --threshold $THRESHOLD --avg-seg-size $AVGSEGSIZE --cache-size $CACHE_SIZE
 
 
 #----

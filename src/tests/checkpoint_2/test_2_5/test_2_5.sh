@@ -14,6 +14,7 @@ THRESHOLD="16"
 AVGSEGSIZE="4"
 TEST_FILE="largefile"
 TEST_FILE_DUP="largefile.duplicated"
+CACHE_SIZE="16"
 
 source $SCRIPTS_DIR/functions.sh
 
@@ -23,7 +24,7 @@ source $SCRIPTS_DIR/functions.sh
 # and the reference files are in $REFERENCE_DIR
 # Creates the intermediate results in $LOG_DIR
 #
-process_args cloudfs --ssd-path $SSD_MNT_ --fuse-path $FUSE_MNT_ --threshold $THRESHOLD --avg-seg-size $AVGSEGSIZE
+process_args cloudfs --ssd-path $SSD_MNT_ --fuse-path $FUSE_MNT_ --threshold $THRESHOLD --avg-seg-size $AVGSEGSIZE --cache-size $CACHE_SIZE
 
 # test setup
 rm -rf $REFERENCE_DIR

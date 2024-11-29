@@ -120,8 +120,8 @@ void ChunkTable::Snapshot(FILE *snapshot_file) {
   size_t num_entries = chunk_table_.size();
   fwrite(&num_entries, sizeof(size_t), 1, snapshot_file);
   for (auto &entry : chunk_table_) {
-    logger_->info("ChunkTable: persist key " + entry.first + ", ref_count " +
-                 std::to_string(entry.second.ref_count_));
+    // logger_->info("ChunkTable: persist key " + entry.first + ", ref_count " +
+    //              std::to_string(entry.second.ref_count_));
     size_t key_len = entry.first.size();
     fwrite(&key_len, sizeof(size_t), 1, snapshot_file);
     fwrite(entry.first.c_str(), sizeof(char), key_len, snapshot_file);
@@ -137,7 +137,7 @@ void ChunkTable::Snapshot(FILE *snapshot_file) {
 }
 
 void ChunkTable::Restore(FILE *snapshot_file) {
-  logger_->debug("ChunkTable: restore");
+  // logger_->debug("ChunkTable: restore");
   size_t num_entries;
   fread(&num_entries, sizeof(size_t), 1, snapshot_file);
   // logger_->debug("ChunkTable: restore entry count " +
@@ -164,8 +164,8 @@ void ChunkTable::Restore(FILE *snapshot_file) {
       chunk_table_[key_str].ref_count_ = ref_count;
     }
 
-    logger_->debug("ChunkTable: restore key " + key_str + ", ref_count " +
-                   std::to_string(ref_count));
+    // logger_->debug("ChunkTable: restore key " + key_str + ", ref_count " +
+    //                std::to_string(ref_count));
   }
   // logger_->debug("ChunkTable: restore done");
 }
@@ -191,8 +191,8 @@ void ChunkTable::DeleteSnapshot(FILE *snapshot_file) {
       }
       continue;
     }
-    logger_->debug("ChunkTable: delete snapshot key " + key_str + ", ref_count " +
-                   std::to_string(ref_count));
+    // logger_->debug("ChunkTable: delete snapshot key " + key_str + ", ref_count " +
+    //                std::to_string(ref_count));
 
     if(ref_count > 0) {
       // only ref_count > 0 means the chunk is used by this snapshot
@@ -202,6 +202,7 @@ void ChunkTable::DeleteSnapshot(FILE *snapshot_file) {
         chunk_table_[key_str].ref_count_ == 0) {
       // remove the key if both ref_count and snapshot_ref_count are 0
       chunk_table_.erase(key_str);
+      buffer_controller_->delete_object(key_str);
     }
   }
 }

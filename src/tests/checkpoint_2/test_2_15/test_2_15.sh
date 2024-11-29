@@ -17,6 +17,7 @@ TEST_FILE="largefile"
 MODIFIED_FILE="largefile.modified"
 FILE_SIZE=$(wc -c < $TEST_DIR/$TEST_FILE)
 CLOUD_USAGE="cloud_usage"
+CACHE_SIZE="1"
 
 source $SCRIPTS_DIR/functions.sh
 NODEDUP=0
@@ -27,7 +28,7 @@ NODEDUP=0
 # Creates the intermediate results in $LOG_DIR
 #
 
-process_args cloudfs --ssd-path $SSD_MNT_ --fuse-path $FUSE_MNT_ --threshold $THRESHOLD --avg-seg-size $AVGSEGSIZE
+process_args cloudfs --ssd-path $SSD_MNT_ --fuse-path $FUSE_MNT_ --threshold $THRESHOLD --avg-seg-size $AVGSEGSIZE --cache-size $CACHE_SIZE
 
 # test setup
 rm -rf $REFERENCE_DIR

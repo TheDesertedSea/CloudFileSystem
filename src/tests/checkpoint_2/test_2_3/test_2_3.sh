@@ -24,6 +24,7 @@ LOG_DIR="/tmp/testrun-`date +"%Y-%m-%d-%H%M%S"`"
 TESTDIR="$FUSE_MNT"
 TEMPDIR="/tmp/cloudfstest"
 STATFILE="$LOG_DIR/stats"
+CACHE_SIZE="32"
 
 CACHEDIR=$CACHE_DIR
 
@@ -93,7 +94,7 @@ function execute_part2_tests()
 #
 # Main
 #
-process_args cloudfs --ssd-path $SSD_MNT_ --fuse-path $FUSE_MNT_ --threshold $THRESHOLD
+process_args cloudfs --ssd-path $SSD_MNT_ --fuse-path $FUSE_MNT_ --threshold $THRESHOLD --cache-size $CACHE_SIZE
 
 
 #----

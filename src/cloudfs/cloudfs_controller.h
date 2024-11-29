@@ -42,7 +42,7 @@ class CloudfsController {
 
   public:
     CloudfsController(struct cloudfs_state *state, const std::string& host_name, std::string bucket_name, std::shared_ptr<DebugLogger> logger);
-    ~CloudfsController();
+    virtual ~CloudfsController();
 
     std::shared_ptr<BufferController> get_buffer_controller() {
       return buffer_controller_;

@@ -16,6 +16,7 @@ AVGSEGSIZE="4"
 LOG_DIR="/tmp/testrun-`date +"%Y-%m-%d-%H%M%S"`"
 TESTDIR=$FUSE_MNT_
 TEMPDIR="/tmp/cloudfstest"
+CACHE_SIZE="16"
 
 #
 # Execute battery of test cases.
@@ -133,7 +134,7 @@ function execute_part3_tests()
 #
 # Main
 #
-process_args cloudfs --ssd-path $SSD_MNT_ --fuse-path $FUSE_MNT_ --threshold $THRESHOLD --avg-seg-size $AVGSEGSIZE
+process_args cloudfs --ssd-path $SSD_MNT_ --fuse-path $FUSE_MNT_ --threshold $THRESHOLD --avg-seg-size $AVGSEGSIZE --cache-size $CACHE_SIZE
 
 #----
 # test setup

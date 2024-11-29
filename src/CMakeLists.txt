@@ -21,6 +21,8 @@ set(cloudfs_srcs
         cloudfs/cloudfs_controller.cc
         cloudfs/snapshot.h
         cloudfs/snapshot.cc
+        cloudfs/cache_replacer.h
+        cloudfs/cache_replacer.cc
         )
 
 

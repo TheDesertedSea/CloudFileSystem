@@ -63,7 +63,7 @@ void DebugLogger::info(const std::string& info_str) {
 }
 
 void DebugLogger::debug(const std::string& debug_str) {
-  debug_print("[CloudFS Debug] " + debug_str, file_);
+  // debug_print("[CloudFS Debug] " + debug_str, file_);
 }
 
 FILE* DebugLogger::get_file() {

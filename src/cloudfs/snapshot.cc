@@ -33,8 +33,8 @@ SnapshotController::SnapshotController(
   auto buffer_controller = cloudfs_controller_->get_buffer_controller();
   auto object_key = generate_object_key(snapshot_stub_path_);
   buffer_controller->download_file(object_key, snapshot_stub_path_);
-  logger_->debug("SnapshotController::SnapshotController: download .snapshot "
-                 "info from cloud done");
+  // logger_->debug("SnapshotController::SnapshotController: download .snapshot "
+  //                "info from cloud done");
 
   struct stat st;
   if (stat(snapshot_stub_path_.c_str(), &st) != 0) {
@@ -44,7 +44,7 @@ SnapshotController::SnapshotController(
   }
   if (st.st_size == 0) {
     // no snapshot info
-    logger_->debug("SnapshotController::SnapshotController: no snapshot info");
+    // logger_->debug("SnapshotController::SnapshotController: no snapshot info");
     return;
   }
   // logger_->debug(
@@ -60,8 +60,8 @@ SnapshotController::SnapshotController(
   }
   size_t entry_count;
   fread(&entry_count, sizeof(size_t), 1, file);
-  logger_->debug("SnapshotController::SnapshotController: parse entry count: " +
-                 std::to_string(entry_count));
+  // logger_->debug("SnapshotController::SnapshotController: parse entry count: " +
+  //                std::to_string(entry_count));
   std::vector<unsigned long> snapshot_list;
   for (size_t i = 0; i < entry_count; i++) {
     unsigned long ts;
@@ -69,7 +69,7 @@ SnapshotController::SnapshotController(
     // logger_->debug("SnapshotController::SnapshotController: parse snapshot
     // timestamp: " + std::to_string(ts));
     snapshot_list.push_back(ts);
-    logger_->debug("SnapshotController::SnapshotController: recover snapshot " + std::to_string(ts));
+    // logger_->debug("SnapshotController::SnapshotController: recover snapshot " + std::to_string(ts));
   }
   ftruncate(fileno(file), 0);
   fclose(file);
@@ -77,14 +77,14 @@ SnapshotController::SnapshotController(
   set_snapshot_count(entry_count);
   set_snapshot_list(snapshot_list);
 
-  logger_->debug("SnapshotController::SnapshotController: recover .snapshot info done");
+  // logger_->debug("SnapshotController::SnapshotController: recover .snapshot info done");
 }
 
 SnapshotController::~SnapshotController() {}
 
 int SnapshotController::create_snapshot(unsigned long *timestamp) {
-  logger_->debug("SnapshotController::create_snapshot: create snapshot, " +
-                 std::to_string(*timestamp));
+  // logger_->debug("SnapshotController::create_snapshot: create snapshot, " +
+  //                std::to_string(*timestamp));
   int count;
   if (get_snapshot_count(count) != 0) {
     return logger_->error(
@@ -124,9 +124,9 @@ int SnapshotController::create_snapshot(unsigned long *timestamp) {
       }
     }
   }
-  logger_->debug(
-      "SnapshotController::create_snapshot: start creating snapshot " +
-      std::to_string(*timestamp));
+  // logger_->debug(
+  //     "SnapshotController::create_snapshot: start creating snapshot " +
+  //     std::to_string(*timestamp));
 
   // TODO: create snapshot
   auto tmp_path = std::string(state_->ssd_path) + "/.snapshot_tmp";
@@ -151,7 +151,7 @@ int SnapshotController::create_snapshot(unsigned long *timestamp) {
   dir_queue.push(std::string(state_->ssd_path));
   while (!dir_queue.empty()) {
     auto dir = dir_queue.front();
-    logger_->debug("SnapshotController::create_snapshot: process dir " + dir);
+    // logger_->debug("SnapshotController::create_snapshot: process dir " + dir);
     dir_queue.pop();
     DIR *dirp = opendir(dir.c_str());
     if (dirp == NULL) {
@@ -187,8 +187,8 @@ int SnapshotController::create_snapshot(unsigned long *timestamp) {
       if (S_ISDIR(st.st_mode)) {
         // write dir path to tmp file
         auto dir_path = dir + "/" + name;
-        logger_->debug("SnapshotController::create_snapshot: write dir path " +
-                       dir_path);
+        // logger_->debug("SnapshotController::create_snapshot: write dir path " +
+        //                dir_path);
         size_t dir_path_len = dir_path.size();
         fwrite(&dir_path_len, sizeof(size_t), 1, tmp_file);
         fwrite(dir_path.c_str(), sizeof(char), dir_path_len, tmp_file);
@@ -198,8 +198,8 @@ int SnapshotController::create_snapshot(unsigned long *timestamp) {
       } else {
         // write filepath to tmp file
         auto file_path = dir + "/" + name;
-        logger_->debug("SnapshotController::create_snapshot: write file path " +
-                       file_path);
+        // logger_->debug("SnapshotController::create_snapshot: write file path " +
+        //                file_path);
         size_t file_path_len = file_path.size();
         fwrite(&file_path_len, sizeof(size_t), 1, tmp_file);
         fwrite(file_path.c_str(), sizeof(char), file_path_len, tmp_file);
@@ -272,8 +272,8 @@ int SnapshotController::create_snapshot(unsigned long *timestamp) {
   // write entry count to tmp file
   fseek(tmp_file, 0, SEEK_SET);
   fwrite(&entry_count, sizeof(size_t), 1, tmp_file);
-  logger_->debug("SnapshotController::create_snapshot: write entry count: " +
-                 std::to_string(entry_count));
+  // logger_->debug("SnapshotController::create_snapshot: write entry count: " +
+  //                std::to_string(entry_count));
 
   fclose(tmp_file);
 
@@ -305,18 +305,18 @@ int SnapshotController::create_snapshot(unsigned long *timestamp) {
         "SnapshotController::create_snapshot: set snapshot list failed");
   }
 
-  for(auto &ts : snapshot_list) {
-    logger_->debug("SnapshotController::create_snapshot: snapshot timestamp: " + std::to_string(ts));
-  }
+  // for(auto &ts : snapshot_list) {
+  //   logger_->debug("SnapshotController::create_snapshot: snapshot timestamp: " + std::to_string(ts));
+  // }
 
-  logger_->debug("SnapshotController::create_snapshot: create snapshot done");
+  // logger_->debug("SnapshotController::create_snapshot: create snapshot done");
 
   return 0;
 }
 
 int SnapshotController::restore_snapshot(unsigned long *timestamp) {
-  logger_->debug("SnapshotController::restore_snapshot: restore snapshot, " +
-                 std::to_string(*timestamp));
+  // logger_->debug("SnapshotController::restore_snapshot: restore snapshot, " +
+  //                std::to_string(*timestamp));
   std::vector<unsigned long> snapshot_list;
   if (get_snapshot_list(snapshot_list) != 0) {
     return logger_->error(
@@ -335,7 +335,7 @@ int SnapshotController::restore_snapshot(unsigned long *timestamp) {
         "SnapshotController::restore_snapshot: snapshot not found");
   }
 
-  logger_->debug("SnapshotController::restore_snapshot: snapshot found");
+  // logger_->debug("SnapshotController::restore_snapshot: snapshot found");
 
   // clear ssd path
   clear_dir(state_->ssd_path);
@@ -359,8 +359,8 @@ int SnapshotController::restore_snapshot(unsigned long *timestamp) {
   // read entry count
   size_t entry_count;
   fread(&entry_count, sizeof(size_t), 1, tmp_file);
-  logger_->debug("SnapshotController::restore_snapshot: restore entry count " +
-                 std::to_string(entry_count));
+  // logger_->debug("SnapshotController::restore_snapshot: restore entry count " +
+  //                std::to_string(entry_count));
 
   // restore chunk table
   cloudfs_controller_->get_chunk_table().Restore(tmp_file);
@@ -382,8 +382,8 @@ int SnapshotController::restore_snapshot(unsigned long *timestamp) {
       fread(buf, sizeof(char), dir_path_len, tmp_file);
       std::string dir_path(buf, dir_path_len);
 
-      logger_->debug("SnapshotController::restore_snapshot: process dir " +
-                     dir_path);
+      // logger_->debug("SnapshotController::restore_snapshot: process dir " +
+      //                dir_path);
 
       // create dir if not exist
       if (mkdir(dir_path.c_str(), st.st_mode) != 0) {
@@ -403,8 +403,8 @@ int SnapshotController::restore_snapshot(unsigned long *timestamp) {
     fread(&filepath_len, sizeof(size_t), 1, tmp_file);
     fread(buf, sizeof(char), filepath_len, tmp_file);
     std::string filepath(buf, filepath_len);
-    logger_->debug("SnapshotController::restore_snapshot: process file " +
-                   filepath);
+    // logger_->debug("SnapshotController::restore_snapshot: process file " +
+    //                filepath);
 
     // create file if not exist, first full priv
     auto file_fd = open(filepath.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0777);
@@ -531,7 +531,7 @@ int SnapshotController::restore_snapshot(unsigned long *timestamp) {
   auto i = 0;
   while(i < (int)snapshot_list.size() && snapshot_list[i] <= *timestamp) {
     new_snapshot_list.push_back(snapshot_list[i]);
-    logger_->debug("SnapshotController::restore_snapshot: keep snapshot " + std::to_string(snapshot_list[i]));
+    // logger_->debug("SnapshotController::restore_snapshot: keep snapshot " + std::to_string(snapshot_list[i]));
     i++;
   }
 
@@ -544,7 +544,7 @@ int SnapshotController::restore_snapshot(unsigned long *timestamp) {
   set_snapshot_count(new_snapshot_list.size());
   set_snapshot_list(new_snapshot_list);
 
-  logger_->debug("SnapshotController::restore_snapshot: delete snapshot done");
+  // logger_->debug("SnapshotController::restore_snapshot: delete snapshot done");
 
   return 0;
 }
@@ -564,8 +564,8 @@ int SnapshotController::list_snapshots(unsigned long *snapshot_list) {
 }
 
 int SnapshotController::delete_snapshot(unsigned long *timestamp) {
-  logger_->debug("SnapshotController::delete_snapshot: delete snapshot, " +
-                 std::to_string(*timestamp));
+  // logger_->debug("SnapshotController::delete_snapshot: delete snapshot, " +
+  //                std::to_string(*timestamp));
   // check if snapshot exists
   std::vector<unsigned long> snapshot_list;
   if (get_snapshot_list(snapshot_list) != 0) {
@@ -607,7 +607,7 @@ int SnapshotController::delete_snapshot(unsigned long *timestamp) {
         std::to_string(*timestamp));
   }
 
-  logger_->debug("SnapshotController::delete_snapshot: can delete snapshot");
+  // logger_->debug("SnapshotController::delete_snapshot: can delete snapshot");
 
   // delete snapshot
 
@@ -642,7 +642,7 @@ int SnapshotController::delete_snapshot(unsigned long *timestamp) {
   for (size_t i = 0; i < snapshot_list.size(); i++) {
     if (snapshot_list[i] != *timestamp) {
       new_snapshot_list.push_back(snapshot_list[i]);
-      logger_->debug("SnapshotController::delete_snapshot: keep snapshot " + std::to_string(snapshot_list[i]));
+      // logger_->debug("SnapshotController::delete_snapshot: keep snapshot " + std::to_string(snapshot_list[i]));
     }
   }
   // update snapshot count
@@ -650,14 +650,14 @@ int SnapshotController::delete_snapshot(unsigned long *timestamp) {
   // update snapshot list
   set_snapshot_list(new_snapshot_list);
 
-  logger_->debug("SnapshotController::delete_snapshot: delete snapshot done, " +
-                 std::to_string(*timestamp));
+  // logger_->debug("SnapshotController::delete_snapshot: delete snapshot done, " +
+  //                std::to_string(*timestamp));
   return 0;
 }
 
 int SnapshotController::install_snapshot(unsigned long *timestamp) {
-  logger_->debug("SnapshotController::install_snapshot: install snapshot, " +
-                 std::to_string(*timestamp));
+  // logger_->debug("SnapshotController::install_snapshot: install snapshot, " +
+  //                std::to_string(*timestamp));
 
   // check if snapshot exists
   std::vector<unsigned long> snapshot_list;
@@ -694,7 +694,7 @@ int SnapshotController::install_snapshot(unsigned long *timestamp) {
     }
   }
 
-  logger_->debug("SnapshotController::install_snapshot: can install snapshot");
+  // logger_->debug("SnapshotController::install_snapshot: can install snapshot");
 
   // install snapshot
 
@@ -745,8 +745,8 @@ int SnapshotController::install_snapshot(unsigned long *timestamp) {
       std::string dir_path(buf, dir_path_len);
       dir_path = root_path + dir_path.substr(ssd_path_len);
 
-      logger_->debug("SnapshotController::restore_snapshot: process dir " +
-                     dir_path);
+      // logger_->debug("SnapshotController::restore_snapshot: process dir " +
+      //                dir_path);
 
       // create dir if not exist
       if (mkdir(dir_path.c_str(), st.st_mode) != 0) {
@@ -767,8 +767,8 @@ int SnapshotController::install_snapshot(unsigned long *timestamp) {
     fread(buf, sizeof(char), filepath_len, tmp_file);
     std::string filepath(buf, filepath_len);
     filepath = root_path + filepath.substr(ssd_path_len);
-    logger_->debug("SnapshotController::restore_snapshot: process file " +
-                   filepath);
+    // logger_->debug("SnapshotController::restore_snapshot: process file " +
+    //                filepath);
 
     // create file if not exist, first full priv
     auto file_fd = open(filepath.c_str(), O_CREAT | O_EXCL | O_WRONLY, 0777);
@@ -895,13 +895,13 @@ int SnapshotController::install_snapshot(unsigned long *timestamp) {
   set_installed_snapshot_count(installed_snapshot_list.size());
   set_installed_snapshot_list(installed_snapshot_list);
 
-  for(auto &ts : installed_snapshot_list) {
-    logger_->debug("SnapshotController::install_snapshot: installed snapshot " + std::to_string(ts));
-  }
+  // for(auto &ts : installed_snapshot_list) {
+  //   logger_->debug("SnapshotController::install_snapshot: installed snapshot " + std::to_string(ts));
+  // }
 
-  logger_->debug(
-      "SnapshotController::install_snapshot: install snapshot done, " +
-      std::to_string(*timestamp));
+  // logger_->debug(
+  //     "SnapshotController::install_snapshot: install snapshot done, " +
+  //     std::to_string(*timestamp));
   return 0;
 }
 
@@ -924,7 +924,7 @@ int SnapshotController::uninstall_snapshot(unsigned long *timestamp) {
                           std::to_string(*timestamp));
   }
 
-  logger_->debug("SnapshotController::uninstall_snapshot: can uninstall snapshot");
+  // logger_->debug("SnapshotController::uninstall_snapshot: can uninstall snapshot");
 
   // uninstall snapshot
   auto root_path = std::string(state_->ssd_path) + "/snapshot_" +
@@ -938,19 +938,19 @@ int SnapshotController::uninstall_snapshot(unsigned long *timestamp) {
   for (size_t i = 0; i < installed_snapshot_list.size(); i++) {
     if (installed_snapshot_list[i] != *timestamp) {
       new_installed_snapshot_list.push_back(installed_snapshot_list[i]);
-      logger_->debug("SnapshotController::uninstall_snapshot: keep installed snapshot " + std::to_string(installed_snapshot_list[i]));
+      // logger_->debug("SnapshotController::uninstall_snapshot: keep installed snapshot " + std::to_string(installed_snapshot_list[i]));
     }
   }
   set_installed_snapshot_count(new_installed_snapshot_list.size());
   set_installed_snapshot_list(new_installed_snapshot_list);
 
-  logger_->debug("SnapshotController::uninstall_snapshot: uninstall snapshot done, " +
-                 std::to_string(*timestamp));
+  // logger_->debug("SnapshotController::uninstall_snapshot: uninstall snapshot done, " +
+  //                std::to_string(*timestamp));
   return 0; 
 }
 
 void SnapshotController::persist() {
-  logger_->debug("SnapshotController::persist: persist snapshot info");
+  // logger_->debug("SnapshotController::persist: persist snapshot info");
   std::vector<unsigned long> snapshot_list;
   if (get_snapshot_list(snapshot_list) != 0) {
     logger_->error("SnapshotController::persist: get snapshot list failed");
@@ -965,8 +965,8 @@ void SnapshotController::persist() {
   size_t snapshot_count = snapshot_list.size();
   fwrite(&snapshot_count, sizeof(size_t), 1, file);
   for (auto &ts : snapshot_list) {
-    logger_->debug("SnapshotController::persist: write snapshot timestamp " +
-                   std::to_string(ts));
+    // logger_->debug("SnapshotController::persist: write snapshot timestamp " +
+    //                std::to_string(ts));
     fwrite(&ts, sizeof(unsigned long), 1, file);
   }
   fclose(file);
@@ -986,7 +986,7 @@ void SnapshotController::persist() {
   // truncate snapshot stub file
   truncate(snapshot_stub_path_.c_str(), 0);
 
-  logger_->debug("SnapshotController::persist: upload snapshot info done");
+  // logger_->debug("SnapshotController::persist: upload snapshot info done");
 }
 
 int SnapshotController::get_snapshot_count(int &count) {
@@ -995,8 +995,8 @@ int SnapshotController::get_snapshot_count(int &count) {
                        "user.cloudfs.snapshot_count", buf, sizeof(buf));
   if (ret == -1) {
     if (errno == ENODATA) {
-      logger_->debug("SnapshotController::get_snapshot_count: snapshot count "
-                     "not found, default to 0");
+      // logger_->debug("SnapshotController::get_snapshot_count: snapshot count "
+      //                "not found, default to 0");
       count = 0;
       return 0;
     }
@@ -1049,8 +1049,8 @@ int SnapshotController::get_installed_snapshot_count(int &count) {
                 "user.cloudfs.snapshot_installed_count", buf, sizeof(buf));
   if (ret == -1) {
     if (errno == ENODATA) {
-      logger_->debug("SnapshotController::get_installed_snapshot_count: "
-                     "installed snapshot count not found, default to 0");
+      // logger_->debug("SnapshotController::get_installed_snapshot_count: "
+      //                "installed snapshot count not found, default to 0");
       count = 0;
       return 0;
     }
@@ -1124,6 +1124,9 @@ int SnapshotController::clear_dir(const std::string &path) {
         continue;
       }
       if (name == ".snapshot") {
+        continue;
+      }
+      if (name == ".cache") {
         continue;
       }
 

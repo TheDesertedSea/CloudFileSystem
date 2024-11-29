@@ -16,6 +16,7 @@ TESTDIR=$FUSE_MNT_
 TEMPDIR="/tmp/cloudfstest"
 STATFILE="$LOG_DIR/stats"
 TARFILE="$TEST_DIR/big_test.tar.gz"
+CACHE_SIZE="16"
 
 #
 # Execute battery of test cases.
@@ -73,7 +74,7 @@ function execute_part3_tests()
 
     sync
     sleep 2
-    $SCRIPTS_DIR/cloudfs_controller.sh x --ssd-path $SSD_MNT_ --fuse-path $FUSE_MNT_ --threshold $THRESHOLD --avg-seg-size $AVGSEGSIZE
+    $SCRIPTS_DIR/cloudfs_controller.sh x --ssd-path $SSD_MNT_ --fuse-path $FUSE_MNT_ --threshold $THRESHOLD --avg-seg-size $AVGSEGSIZE --cache-size $CACHE_SIZE
 
     ls -al $FUSE_MNT/
     # restore a snapshot
