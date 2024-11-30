@@ -28,6 +28,8 @@ public:
     virtual void Remove(const std::string& key) = 0;
 
     virtual void Persist() = 0;
+
+    virtual void PrintCache() = 0;
 };
 
 class LRUKCacheReplacer : public CacheReplacer {
@@ -81,4 +83,30 @@ public:
     void Evict(std::string& key) override;
     void Remove(const std::string& key) override;
     void Persist() override;
+    void PrintCache() override;
+};
+
+class LRUCacheReplacer : public CacheReplacer {
+    struct CacheEntry {
+        std::string key_;
+        CacheEntry* prev_;
+        CacheEntry* next_;
+
+        CacheEntry() : prev_(nullptr), next_(nullptr) {}
+    };
+
+    CacheEntry* head_;
+    CacheEntry* tail_;
+
+    std::unordered_map<std::string, CacheEntry*> cache_entries_;
+
+public:
+    LRUCacheReplacer(struct cloudfs_state* state, std::shared_ptr<DebugLogger> logger);
+    ~LRUCacheReplacer();
+
+    void Access(const std::string& key) override;
+    void Evict(std::string& key) override;
+    void Remove(const std::string& key) override;
+    void Persist() override;
+    void PrintCache() override;
 };

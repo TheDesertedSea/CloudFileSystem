@@ -24,7 +24,8 @@ BufferController::BufferController(struct cloudfs_state *state,
   cloud_create_bucket(bucket_name_.c_str());
   cloud_print_error(logger_->get_file());
 
-  cache_replacer_ = std::make_shared<LRUKCacheReplacer>(4, state, logger_);
+  // cache_replacer_ = std::make_shared<LRUKCacheReplacer>(2, state, logger_);
+  cache_replacer_ = std::make_shared<LRUCacheReplacer>(state, logger_);
   cache_size_ = state->cache_size;
   cache_used_ = 0;
   cache_root_ = std::string(state->ssd_path) + "/.cache";
@@ -121,8 +122,8 @@ int BufferController::download_chunk(const std::string &key, uint64_t fd,
 
   if ((int64_t)size > cache_size_) {
     // cannot fit in cache, download directly
-    logger_->debug("BufferController::download_chunk: download directly, size: " +
-                   std::to_string(size));
+    // logger_->debug("BufferController::download_chunk: download directly, size: " +
+    //                std::to_string(size));
     outfd = fd;
     out_offset = offset;
     cloud_get_object(bucket_name_.c_str(), key.c_str(), get_buffer_fd);
@@ -132,7 +133,7 @@ int BufferController::download_chunk(const std::string &key, uint64_t fd,
 
   auto cached_path = cache_root_ + "." + key;
   if (cached_objects.find(key) == cached_objects.end()) {
-    logger_->debug("BufferController::download_chunk: download from cloud");
+    // logger_->debug("BufferController::download_chunk: download from cloud");
 
     // evict cache to make space
     auto ret = evict_to_size(size);
@@ -185,19 +186,21 @@ int BufferController::download_chunk(const std::string &key, uint64_t fd,
   fclose(outfile);
 
   cache_replacer_->Access(key); // update cache replacer
-  logger_->debug("BufferController::download_chunk: success, key: " + key +
-                 ", size: " + std::to_string(size) + ", available space: " +
-                 std::to_string(cache_size_ - cache_used_));
+  // logger_->debug("BufferController::download_chunk: success, key: " + key +
+  //                ", size: " + std::to_string(size) + ", available space: " +
+  //                std::to_string(cache_size_ - cache_used_));
   return 0;
 }
 
 int BufferController::upload_chunk(const std::string &key, uint64_t fd,
                                    off_t offset, size_t size) {
-  logger_->debug("BufferController::upload_chunk: " + key + ", offset: " +
-                 std::to_string(offset) + ", size: " + std::to_string(size));
+  // logger_->debug("BufferController::upload_chunk: " + key + ", offset: " +
+  //                std::to_string(offset) + ", size: " + std::to_string(size));
 
   if ((int64_t)size > cache_size_) {
     // cannot fit in cache, upload directly
+    // logger_->debug("BufferController::upload_chunk: upload directly, size: " +
+    //                std::to_string(size));
     infd = fd;
     in_offset = offset;
     cloud_put_object(bucket_name_.c_str(), key.c_str(), size, put_buffer_fd);
@@ -206,20 +209,18 @@ int BufferController::upload_chunk(const std::string &key, uint64_t fd,
   }
 
   auto cached_path = cache_root_ + "." + key;
-  auto old_size = 0;
-  if (cached_objects.find(key) == cached_objects.end()) {
-    logger_->debug("BufferController::upload_chunk: not in cache, evict cache to make space");
+  if (cached_objects.find(key) != cached_objects.end()) {
+    // logger_->debug("BufferController::upload_chunk: found in cache, size: " + std::to_string(cached_objects[key].size_));
+    return 0;
+  }
 
-    // evict cache to make space
-    auto ret = evict_to_size(size);
-    if (ret != 0) {
-      logger_->error("BufferController::upload_chunk: evict cache to make space failed");
-      return ret;
-    }
+  // logger_->debug("BufferController::upload_chunk: not in cache, evict cache to make space");
 
-    old_size = 0;
-  } else {
-    old_size = cached_objects[key].size_;
+  // evict cache to make space
+  auto ret = evict_to_size(size);
+  if (ret != 0) {
+    logger_->error("BufferController::upload_chunk: evict cache to make space failed");
+    return ret;
   }
 
   // create cache file
@@ -230,7 +231,7 @@ int BufferController::upload_chunk(const std::string &key, uint64_t fd,
   }
 
   // truncate to 0
-  auto ret = ftruncate(fileno(cached_file), 0);
+  ret = ftruncate(fileno(cached_file), 0);
   if (ret == -1) {
     return logger_->error("BufferController::upload_chunk: truncate cached file failed, path: " +
                           cached_path);
@@ -258,13 +259,12 @@ int BufferController::upload_chunk(const std::string &key, uint64_t fd,
 
   // update cache state
   cached_objects[key] = CachedObject(size, true);
-  cache_used_ += size - old_size;
+  cache_used_ += size;
   cache_replacer_->Access(key); // update cache replacer
 
-  logger_->debug(
-      "BufferController::upload_chunk: success, key: " + key + ", size: " + std::to_string(size) +
-      ", old size: " + std::to_string(old_size) +
-      ", available space: " + std::to_string(cache_size_ - cache_used_));
+  // logger_->debug(
+  //     "BufferController::upload_chunk: success, key: " + key + ", size: " + std::to_string(size) +
+  //     ", available space: " + std::to_string(cache_size_ - cache_used_));
   return 0;
 }
 
@@ -324,11 +324,11 @@ int BufferController::clear_file(uint64_t fd) {
 }
 
 int BufferController::delete_object(const std::string &key) {
-  logger_->debug("BufferController::delete_object: " + key);
+  // logger_->debug("BufferController::delete_object: " + key);
 
   if (cached_objects.find(key) != cached_objects.end()) {
-    logger_->debug("BufferController::delete_object: found in cache, size: " +
-                   std::to_string(cached_objects[key].size_));
+    // logger_->debug("BufferController::delete_object: found in cache, size: " +
+    //                std::to_string(cached_objects[key].size_));
     cache_used_ -= cached_objects[key].size_;
     auto dirty = cached_objects[key].dirty_;
     cached_objects.erase(key);
@@ -345,7 +345,7 @@ int BufferController::delete_object(const std::string &key) {
     }
   }
 
-  logger_->debug("BufferController::delete_object: delete from cloud");
+  // logger_->debug("BufferController::delete_object: delete from cloud");
 
   // delete from cloud
   cloud_delete_object(bucket_name_.c_str(), key.c_str());
@@ -384,23 +384,23 @@ int BufferController::persist_cache_state() {
                             path);
     }
 
-    if (objects.second.dirty_) {
-      // flush to cloud
-      logger_->debug("BufferController::persist_cache_state: flush to cloud, key: " + objects.first + ", size: " + std::to_string(objects.second.size_));
+    // if (objects.second.dirty_) {
+    //   // flush to cloud
+    //   logger_->debug("BufferController::persist_cache_state: flush to cloud, key: " + objects.first + ", size: " + std::to_string(objects.second.size_));
 
-      infd = open(path.c_str(), O_RDONLY);
-      if (infd == -1) {
-        return logger_->error(
-            "BufferController::persist_cache_state: open cached file failed, path: " + path);
-      }
-      in_offset = 0;
-      cloud_put_object(bucket_name_.c_str(), objects.first.c_str(),
-                       objects.second.size_, put_buffer_fd);
-      cloud_print_error(logger_->get_file());
-      close(infd);
+    //   infd = open(path.c_str(), O_RDONLY);
+    //   if (infd == -1) {
+    //     return logger_->error(
+    //         "BufferController::persist_cache_state: open cached file failed, path: " + path);
+    //   }
+    //   in_offset = 0;
+    //   cloud_put_object(bucket_name_.c_str(), objects.first.c_str(),
+    //                    objects.second.size_, put_buffer_fd);
+    //   cloud_print_error(logger_->get_file());
+    //   close(infd);
 
-      objects.second.dirty_ = false;
-    }
+    //   objects.second.dirty_ = false;
+    // }
 
     ret = lsetxattr(path.c_str(), xattr_name_dirty, &objects.second.dirty_,
                     sizeof(bool), 0);
@@ -418,6 +418,10 @@ int BufferController::persist_cache_state() {
   return 0;
 }
 
+void BufferController::PrintCache() {
+  cache_replacer_->PrintCache();
+}
+
 int BufferController::evict_to_size(size_t required_size) {
   logger_->debug("BufferController::evict_to_size: required_size: " +
                  std::to_string(required_size) + ", current available space: " +
@@ -432,6 +436,8 @@ int BufferController::evict_to_size(size_t required_size) {
     auto victim_path = cache_root_ + "." + to_evict;
     auto dirty = cached_objects[to_evict].dirty_;
     logger_->debug("BufferController::evict_to_size: dirty: " + std::to_string(dirty));
+
+    
     if (dirty) {
       // write back to cloud
       infd = open(victim_path.c_str(), O_RDONLY);
@@ -444,25 +450,25 @@ int BufferController::evict_to_size(size_t required_size) {
                        cached_objects[to_evict].size_, put_buffer_fd);
       cloud_print_error(logger_->get_file());
       close(infd);
-      logger_->debug(
-          "BufferController::evict_to_size: write back to cloud, key: " + to_evict +
-          ", size: " + std::to_string(cached_objects[to_evict].size_));
+      // logger_->debug(
+      //     "BufferController::evict_to_size: write back to cloud, key: " + to_evict +
+      //     ", size: " + std::to_string(cached_objects[to_evict].size_));
     }
 
     // delete local file
     remove(victim_path.c_str());
 
-    logger_->debug("BufferController::evict_to_size: delete local chunk, key: " + to_evict +
-                   ", size: " + std::to_string(cached_objects[to_evict].size_));
+    // logger_->debug("BufferController::evict_to_size: delete local chunk, key: " + to_evict +
+    //                ", size: " + std::to_string(cached_objects[to_evict].size_));
     cache_used_ -= cached_objects[to_evict].size_;
     cached_objects.erase(to_evict);
     logger_->debug("BufferController::evict_to_size: update cache used, new used: " +
                    std::to_string(cache_used_));
   }
 
-  logger_->debug("BufferController::evict_to_size: success, required_size: " +
-                 std::to_string(required_size) + ", current available space: " +
-                 std::to_string(cache_size_ - cache_used_));
+  // logger_->debug("BufferController::evict_to_size: success, required_size: " +
+  //                std::to_string(required_size) + ", current available space: " +
+  //                std::to_string(cache_size_ - cache_used_));
 
   return 0;
 }

@@ -17,6 +17,10 @@ bool is_data_path(const std::string& path);
 
 bool is_buffer_path(const std::string& path);
 
+int tar_file(const std::string& tar_path, const std::string& file_path);
+
+int untar_file(const std::string& tar_path, const std::string& dir_path);
+
 class DebugLogger{
   FILE* file_;
 public:

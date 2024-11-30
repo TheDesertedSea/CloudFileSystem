@@ -15,7 +15,8 @@ AVGSEGSIZE="4"
 LOG_DIR="/tmp/testrun-`date +"%Y-%m-%d-%H%M%S"`"
 TESTDIR=$FUSE_MNT_
 TEMPDIR="/tmp/cloudfstest"
-CACHE_SIZE="16"
+CACHE_SIZE="0"
+STAT_FILE="$LOG_DIR/stats"
 
 #
 # Execute battery of test cases.
@@ -38,6 +39,12 @@ function execute_part3_tests()
    cp $TEST_DIR/smallfile_1 $TEMPDIR
 
    sleep 1
+
+   collect_stats > $STAT_FILE
+   echo -e "\nCloud statistics -->"
+   echo "Capacity usage in cloud : $(get_cloud_max_usage $STAT_FILE)"
+
+   ls -l $S3_DIR
    
    # create snapshot 1
    echo -ne "Checking for snapshot creation                   "
@@ -48,6 +55,10 @@ function execute_part3_tests()
    else
       print_result 0
    fi
+
+   collect_stats > $STAT_FILE
+   echo -e "\nCloud statistics -->"
+   echo "Capacity usage in cloud : $(get_cloud_max_usage $STAT_FILE)"
 
    echo "Deleting files"
    rm $TESTDIR/largefile

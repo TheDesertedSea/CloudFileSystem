@@ -17,6 +17,7 @@ TEMPDIR="/tmp/cloudfstest"
 STATFILE="$LOG_DIR/stats"
 TARFILE="$TEST_DIR/big_test.tar.gz"
 CACHE_SIZE="16"
+STAT_FILE="$LOG_DIR/stats"
 
 #
 # Execute battery of test cases.
@@ -60,12 +61,25 @@ function execute_part3_tests()
 
     ls -al $FUSE_MNT/
 
+    collect_stats > $STAT_FILE
+    echo -e "\nCloud statistics -->"
+    echo "Capacity usage in cloud : $(get_cloud_max_usage $STAT_FILE)"
+
     # unmount and remount
     sync
     sleep 2
     $SCRIPTS_DIR/cloudfs_controller.sh u
+
+    ls -al /home/student/mnt/ssd
+
     sleep 2
     $SCRIPTS_DIR/umount_disks.sh
+
+    ls -al /home/student/mnt/ssd
+    
+    collect_stats > $STAT_FILE
+    echo -e "\nCloud statistics -->"
+    echo "Capacity usage in cloud : $(get_cloud_max_usage $STAT_FILE)"
 
     ls -al $S3_DIR/cloudfs/
     sleep 2
@@ -76,6 +90,7 @@ function execute_part3_tests()
     sleep 2
     $SCRIPTS_DIR/cloudfs_controller.sh x --ssd-path $SSD_MNT_ --fuse-path $FUSE_MNT_ --threshold $THRESHOLD --avg-seg-size $AVGSEGSIZE --cache-size $CACHE_SIZE
 
+    ls -al $TEST_DIR/.cache
     ls -al $FUSE_MNT/
     # restore a snapshot
     echo -ne "Checking for snapshot restore         "
@@ -96,7 +111,7 @@ function execute_part3_tests()
 }
 
 # Main
-process_args cloudfs --ssd-path $SSD_MNT_ --fuse-path $FUSE_MNT_ --threshold $THRESHOLD --avg-seg-size $AVGSEGSIZE
+process_args cloudfs --ssd-path $SSD_MNT_ --fuse-path $FUSE_MNT_ --threshold $THRESHOLD --avg-seg-size $AVGSEGSIZE --cache-size $CACHE_SIZE
 #----
 
 rm -rf $TEMPDIR

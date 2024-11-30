@@ -53,6 +53,7 @@ public:
     int delete_object(const std::string& key);
 
     int persist_cache_state();
+    void PrintCache();
 
 private:
     static int get_buffer(const char* buffer, int len) {

@@ -44,7 +44,7 @@ SnapshotController::SnapshotController(
   }
   if (st.st_size == 0) {
     // no snapshot info
-    // logger_->debug("SnapshotController::SnapshotController: no snapshot info");
+    logger_->debug("SnapshotController::SnapshotController: no snapshot info");
     return;
   }
   // logger_->debug(
@@ -83,8 +83,8 @@ SnapshotController::SnapshotController(
 SnapshotController::~SnapshotController() {}
 
 int SnapshotController::create_snapshot(unsigned long *timestamp) {
-  // logger_->debug("SnapshotController::create_snapshot: create snapshot, " +
-  //                std::to_string(*timestamp));
+  logger_->debug("SnapshotController::create_snapshot: create snapshot, " +
+                 std::to_string(*timestamp));
   int count;
   if (get_snapshot_count(count) != 0) {
     return logger_->error(
@@ -277,21 +277,29 @@ int SnapshotController::create_snapshot(unsigned long *timestamp) {
 
   fclose(tmp_file);
 
+  auto tar_path = tmp_path + ".tar";
+  if (tar_file(tar_path, tmp_path) != 0) {
+    return logger_->error("SnapshotController::generate_snapshot: tar tmp file failed, " + tmp_path);
+  }
+
+  // delete tmp file
+  remove(tmp_path.c_str());
+
   struct stat st;
-  if (stat(tmp_path.c_str(), &st) != 0) {
+  if (stat(tar_path.c_str(), &st) != 0) {
     return logger_->error(
         "SnapshotController::generate_snapshot: stat tmp file failed, " +
-        tmp_path);
+        tar_path);
   }
   auto object_key = "snapshot_" + std::to_string(*timestamp);
 
   auto buffer_controller = cloudfs_controller_->get_buffer_controller();
-  buffer_controller->upload_file(object_key, tmp_path, st.st_size);
+  buffer_controller->upload_file(object_key, tar_path, st.st_size);
   // logger_->debug(
   //     "SnapshotController::create_snapshot: upload tmp file to buffer done");
 
-  // delete tmp file
-  remove(tmp_path.c_str());
+  // delete tar file
+  remove(tar_path.c_str());
 
   snapshot_list.push_back(*timestamp);
   auto ret = set_snapshot_count(snapshot_list.size());
@@ -315,8 +323,8 @@ int SnapshotController::create_snapshot(unsigned long *timestamp) {
 }
 
 int SnapshotController::restore_snapshot(unsigned long *timestamp) {
-  // logger_->debug("SnapshotController::restore_snapshot: restore snapshot, " +
-  //                std::to_string(*timestamp));
+  logger_->debug("SnapshotController::restore_snapshot: restore snapshot, " +
+                 std::to_string(*timestamp));
   std::vector<unsigned long> snapshot_list;
   if (get_snapshot_list(snapshot_list) != 0) {
     return logger_->error(
@@ -342,11 +350,19 @@ int SnapshotController::restore_snapshot(unsigned long *timestamp) {
 
   // TODO: restore snapshot
   auto tmp_path = std::string(state_->ssd_path) + "/.snapshot_tmp";
+  auto tar_path = tmp_path + ".tar";
   auto object_key = "snapshot_" + std::to_string(*timestamp);
   auto buffer_controller = cloudfs_controller_->get_buffer_controller();
-  buffer_controller->download_file(object_key, tmp_path);
+  buffer_controller->download_file(object_key, tar_path);
   // logger_->debug("SnapshotController::restore_snapshot: download tmp file from "
   //                "buffer done");
+
+  if (untar_file(tar_path, "/") != 0) {
+    return logger_->error("SnapshotController::restore_snapshot: untar file failed, " + tar_path);
+  }
+
+  // delete tar file
+  remove(tar_path.c_str());
 
   // read tmp file and restore to ssd path
   FILE *tmp_file = fopen(tmp_path.c_str(), "r");
@@ -613,9 +629,17 @@ int SnapshotController::delete_snapshot(unsigned long *timestamp) {
 
   // first download snapshot
   auto tmp_path = std::string(state_->ssd_path) + "/.snapshot_tmp";
+  auto tar_path = tmp_path + ".tar";
   auto object_key = "snapshot_" + std::to_string(*timestamp);
   auto buffer_controller = cloudfs_controller_->get_buffer_controller();
-  buffer_controller->download_file(object_key, tmp_path);
+  buffer_controller->download_file(object_key, tar_path);
+
+  if (untar_file(tar_path, "/") != 0) {
+    return logger_->error("SnapshotController::delete_snapshot: untar file failed, " + tar_path);
+  }
+
+  // delete tar file
+  remove(tar_path.c_str());
 
   FILE *tmp_file = fopen(tmp_path.c_str(), "r");
   if (tmp_file == NULL) {
@@ -656,8 +680,8 @@ int SnapshotController::delete_snapshot(unsigned long *timestamp) {
 }
 
 int SnapshotController::install_snapshot(unsigned long *timestamp) {
-  // logger_->debug("SnapshotController::install_snapshot: install snapshot, " +
-  //                std::to_string(*timestamp));
+  logger_->debug("SnapshotController::install_snapshot: install snapshot, " +
+                 std::to_string(*timestamp));
 
   // check if snapshot exists
   std::vector<unsigned long> snapshot_list;
@@ -699,9 +723,17 @@ int SnapshotController::install_snapshot(unsigned long *timestamp) {
   // install snapshot
 
   auto tmp_path = std::string(state_->ssd_path) + "/.snapshot_tmp";
+  auto tar_path = tmp_path + ".tar";
   auto object_key = "snapshot_" + std::to_string(*timestamp);
   cloudfs_controller_->get_buffer_controller()->download_file(object_key,
-                                                              tmp_path);
+                                                              tar_path);
+
+  if (untar_file(tar_path, "/") != 0) {
+    return logger_->error("SnapshotController::install_snapshot: untar file failed, " + tar_path);
+  }
+
+  // delete tar file
+  remove(tar_path.c_str());
 
   auto root_path = std::string(state_->ssd_path) + "/snapshot_" +
                    std::to_string(*timestamp);
@@ -954,6 +986,12 @@ void SnapshotController::persist() {
   std::vector<unsigned long> snapshot_list;
   if (get_snapshot_list(snapshot_list) != 0) {
     logger_->error("SnapshotController::persist: get snapshot list failed");
+  }
+
+  if(snapshot_list.size() == 0) {
+    // no snapshot state to persist
+    logger_->info("SnapshotController::persist: no snapshot state to persist");
+    return;
   }
 
   FILE *file = fopen(snapshot_stub_path_.c_str(), "w");

@@ -53,7 +53,31 @@ function execute_part2_tests()
     untar $TARFILE $TEMPDIR
     # get rid of disk cache
 
+    collect_stats > $STATFILE
+    echo -e "\nCloud statistics -->"
+
+    echo "Requests to cloud       : $(get_cloud_requests $STATFILE)"
+    echo "Bytes read from cloud   : $(get_cloud_read_bytes $STATFILE)"
+    echo "Capacity usage in cloud : $(get_cloud_max_usage $STATFILE)"
+
+    echo "Cloud cost = $(calculate_cloud_cost $STATFILE)"
+
+    $SCRIPTS_DIR/cloudfs_controller.sh u $CLOUDFSOPTS
+
+    collect_stats > $STATFILE
+    echo -e "\nCloud statistics -->"
+
+    echo "Requests to cloud       : $(get_cloud_requests $STATFILE)"
+    echo "Bytes read from cloud   : $(get_cloud_read_bytes $STATFILE)"
+    echo "Capacity usage in cloud : $(get_cloud_max_usage $STATFILE)"
+
+    echo "Cloud cost = $(calculate_cloud_cost $STATFILE)"
+    ls -l $S3_DIR/cloudfs
+    
     $SCRIPTS_DIR/cloudfs_controller.sh x $CLOUDFSOPTS
+
+
+    ls -l $S3_DIR/cloudfs
 
     PWDSAVE=$PWD
     cd $TEMPDIR && find .  \( ! -regex '.*/\..*' \) -type f -exec md5sum \{\} \; | sort -k2 > $LOG_DIR/md5sum.out.master
@@ -74,6 +98,8 @@ function execute_part2_tests()
 
     echo "`get_cloud_max_usage $STATFILE.md5sum`" > $STATFILE
     nbytes=$(<$STATFILE)
+
+    ls -l $S3_DIR/cloudfs
 
     echo -ne "Checking cloud usage    "
     test $nbytes -eq "0"

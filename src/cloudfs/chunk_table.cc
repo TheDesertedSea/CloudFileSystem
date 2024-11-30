@@ -80,6 +80,10 @@ bool ChunkTable::Release(const std::string &key) {
 void ChunkTable::Persist() {
   // logger_->info("ChunkTable: persist");
 
+  if(chunk_table_.empty()) {
+    return;
+  }
+
   // save chunk table to file
   auto table_path = ssd_path_ + "/" + TABLE_FILE_NAME;
   FILE *table_file = fopen(table_path.c_str(), "w+");

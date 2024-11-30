@@ -55,6 +55,18 @@ find_package(s3 MODULE REQUIRED)
 find_package(fuse MODULE REQUIRED)
 find_package(OpenSSL REQUIRED)
 
+# find library libtar in the standard path
+find_path(LIBTAR_INCLUDE_DIR libtar.h)
+find_library(LIBTAR_LIBRARY tar)
+
+if (NOT LIBTAR_INCLUDE_DIR OR NOT LIBTAR_LIBRARY)
+    message(FATAL_ERROR "libtar not found. Please install libtar or specify its path.")
+endif()
+
+include_directories(${LIBTAR_INCLUDE_DIR})
+
+list(APPEND cloudfs-libs ${LIBTAR_LIBRARY})
+
 add_executable(cloudfs ${cloudfs_srcs})
 
 # add PROJECT_ROOT/cloud-lib to include path using the build interface generator expression
