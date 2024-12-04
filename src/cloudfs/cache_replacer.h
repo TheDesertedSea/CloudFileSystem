@@ -1,112 +1,93 @@
+/**
+ * @file cache_replacer.h
+ * @brief Cache replacer for LRU and LRUK
+ * @author Cundao Yu <cundaoy@andrew.cmu.edu>
+ */
+
 #pragma once
 
+#include <chrono>
 #include <deque>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <chrono>
-#include <memory>
 
 #include "cloudfs.h"
 #include "util.h"
 
+/**
+ * Cache replacer interface
+ */
 class CacheReplacer {
-    
 public:
-    static std::string PERSIST_FILE_PATH;
+  static std::string PERSIST_FILE_PATH; // path to persist file
 
-    struct cloudfs_state* state_;
-    std::shared_ptr<DebugLogger> logger_;
+  struct cloudfs_state *state_;         // cloudfs state
+  std::shared_ptr<DebugLogger> logger_; // logger
 
-    CacheReplacer(struct cloudfs_state* state, std::shared_ptr<DebugLogger> logger);
-    virtual ~CacheReplacer();
+  CacheReplacer(struct cloudfs_state *state,
+                std::shared_ptr<DebugLogger> logger);
+  virtual ~CacheReplacer();
 
-    virtual void Access(const std::string& key) = 0;
+  /**
+   * Access a key
+   * @param key The key to access
+   */
+  virtual void access(const std::string &key) = 0;
 
-    virtual void Evict(std::string& key) = 0;
+  /**
+   * Evict a key
+   * @param key The key to evict
+   */
+  virtual void evict(std::string &key) = 0;
 
-    virtual void Remove(const std::string& key) = 0;
+  /**
+   * Remove a key
+   * @param key The key to remove
+   */
+  virtual void remove(const std::string &key) = 0;
 
-    virtual void Persist() = 0;
+  /**
+   * Persist cache entries info
+   */
+  virtual void persist() = 0;
 
-    virtual void PrintCache() = 0;
+  /**
+   * Print cache entries info
+   */
+  virtual void print_cache() = 0;
 };
 
-class LRUKCacheReplacer : public CacheReplacer {
-
-    struct CacheEntry {
-        static size_t current_timestamp_;
-        static int k_;
-
-        std::deque<size_t> timestamps_;
-
-        CacheEntry() {
-            
-        }
-
-        size_t BackwardDistance() const {
-            if((int)timestamps_.size() < k_) {
-                return std::numeric_limits<size_t>::max();
-            }
-
-            return current_timestamp_ - timestamps_.back();
-        }
-
-        void RecordAccess() {
-            current_timestamp_ = static_cast<size_t>(
-                std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now().time_since_epoch())
-                .count());
-
-            timestamps_.push_front(current_timestamp_);
-            if((int)timestamps_.size() > k_) {
-                timestamps_.pop_back();
-            }
-        }
-
-        bool operator<(const CacheEntry& other) const {
-            auto my_distance = BackwardDistance();
-            auto other_distance = other.BackwardDistance();
-            if(my_distance == other_distance) {
-                return timestamps_.back() > other.timestamps_.back();
-            }
-            return my_distance < other_distance;
-        }
-    };
-
-    std::unordered_map<std::string, CacheEntry> cache_entries_;
-
-public:
-    LRUKCacheReplacer(size_t k, struct cloudfs_state* state, std::shared_ptr<DebugLogger> logger);
-    ~LRUKCacheReplacer();
-
-    void Access(const std::string& key) override;
-    void Evict(std::string& key) override;
-    void Remove(const std::string& key) override;
-    void Persist() override;
-    void PrintCache() override;
-};
-
+/**
+ * LRU cache replacer
+ */
 class LRUCacheReplacer : public CacheReplacer {
-    struct CacheEntry {
-        std::string key_;
-        CacheEntry* prev_;
-        CacheEntry* next_;
+  /**
+   * Cache entry, doubly linked list node
+   */
+  struct CacheEntry {
+    std::string key_;  // key
+    CacheEntry *prev_; // previous node
+    CacheEntry *next_; // next node
 
-        CacheEntry() : prev_(nullptr), next_(nullptr) {}
-    };
+    CacheEntry() : prev_(nullptr), next_(nullptr) {}
+  };
 
-    CacheEntry* head_;
-    CacheEntry* tail_;
+  CacheEntry *head_; // head of the doubly linked list, least recently used
+  CacheEntry *tail_; // tail of the doubly linked list, most recently used
 
-    std::unordered_map<std::string, CacheEntry*> cache_entries_;
+  std::unordered_map<std::string, CacheEntry *>
+      cache_entries_; // key -> CacheEntry*
 
 public:
-    LRUCacheReplacer(struct cloudfs_state* state, std::shared_ptr<DebugLogger> logger);
-    ~LRUCacheReplacer();
+  LRUCacheReplacer(struct cloudfs_state *state,
+                   std::shared_ptr<DebugLogger> logger);
+  ~LRUCacheReplacer();
 
-    void Access(const std::string& key) override;
-    void Evict(std::string& key) override;
-    void Remove(const std::string& key) override;
-    void Persist() override;
-    void PrintCache() override;
+  void access(const std::string &key) override;
+  void evict(std::string &key) override;
+  void remove(const std::string &key) override;
+  void persist() override;
+  void print_cache() override;
 };
