@@ -62,7 +62,9 @@ function execute_part3_tests()
     collect_stats > $STAT_FILE
     echo -e "\nCloud statistics -->"
     echo "Read from cloud : $(get_cloud_read_bytes $STAT_FILE)"
-    echo "Read requests count : $(get_cloud_requests $STAT_FILE)"
+    echo "Current cloud usage : $(get_cloud_current_usage $STAT_FILE)"
+    echo "Max cloud usage : $(get_cloud_max_usage $STAT_FILE)"
+    echo "Requests count : $(get_cloud_requests $STAT_FILE)"
 }
 
 # Main

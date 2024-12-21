@@ -38,13 +38,6 @@ function execute_part3_tests()
     
     sleep 1
 
-    echo "Checking for data integrity(largefile)                 "
-    TEST_FILE="largefile"
-    (cd $TESTDIR && find $TEST_FILE  \( ! -regex '.*/\..*' \) -type f -exec md5sum \{\} \; | sort -k2 | awk '{print $1}' > $LOG_DIR/md5sum.out.master)
-    (cd $TEMPDIR && find $TEST_FILE  \( ! -regex '.*/\..*' \) -type f -exec md5sum \{\} \; | sort -k2 | awk '{print $1}' > $LOG_DIR/md5sum.out)
-    diff $LOG_DIR/md5sum.out.master $LOG_DIR/md5sum.out
-    print_result $?
-
     ls -al $FUSE_MNT/
     ls -al $SSD_MNT_/.cache/
 
@@ -67,7 +60,12 @@ function execute_part3_tests()
     ls -al $FUSE_MNT/
     ls -al $SSD_MNT_/.cache/
 
-    dd if=$FUSE_MNT/largefile bs=16384 count=1 > /dev/null
+    echo "Checking for data integrity(largefile)                 "
+    TEST_FILE="largefile"
+    (cd $TESTDIR && find $TEST_FILE  \( ! -regex '.*/\..*' \) -type f -exec md5sum \{\} \; | sort -k2 | awk '{print $1}' > $LOG_DIR/md5sum.out.master)
+    (cd $TEMPDIR && find $TEST_FILE  \( ! -regex '.*/\..*' \) -type f -exec md5sum \{\} \; | sort -k2 | awk '{print $1}' > $LOG_DIR/md5sum.out)
+    diff $LOG_DIR/md5sum.out.master $LOG_DIR/md5sum.out
+    print_result $?
 
 
     ls -al $SSD_MNT_/.cache/
